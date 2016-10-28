@@ -305,13 +305,13 @@ class RandomLearner(Learner, threading.Thread):
             next_params = self.first_params
         while not self.end_event.is_set(): 
             try:
-                centre_params = self.put_params_and_get_cost(next_params)
+                self.put_params_and_get_cost(next_params)
             except LearnerInterrupt:
                 break
             else:
                 if self.has_trust_region:
-                    temp_min = np.maximum(self.min_boundary,centre_params - self.trust_region)
-                    temp_max = np.minimum(self.max_boundary,centre_params + self.trust_region)
+                    temp_min = np.maximum(self.min_boundary,next_params - self.trust_region)
+                    temp_max = np.minimum(self.max_boundary,next_params + self.trust_region)
                     next_params = temp_min + nr.rand(self.num_params) * (temp_max - temp_min)
                 else:
                     next_params =  self.min_boundary + nr.rand(self.num_params) * self.diff_boundary

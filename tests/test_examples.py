@@ -53,14 +53,16 @@ class TestExamples(unittest.TestCase):
         self.asserts_for_cost_and_params(controller)
         
     def test_random_simple_config(self):
-        _ = mll.launch_from_file(mlu.mloop_path+'/../examples/random_simple_config.txt', 
+        controller = mll.launch_from_file(mlu.mloop_path+'/../examples/random_simple_config.txt',
                                  interface_type = 'test',
                                  **self.override_dict)
+        self.asserts_for_trust_region(controller)
         
     def test_random_complete_config(self):
-        _ = mll.launch_from_file(mlu.mloop_path+'/../examples/random_complete_config.txt', 
+        controller = mll.launch_from_file(mlu.mloop_path+'/../examples/random_complete_config.txt',
                                  interface_type = 'test',
                                  **self.override_dict)
+        self.asserts_for_trust_region(controller)
         
     def test_nelder_mead_simple_config(self):
         controller = mll.launch_from_file(mlu.mloop_path+'/../examples/nelder_mead_simple_config.txt',
@@ -132,7 +134,17 @@ class TestExamples(unittest.TestCase):
         self.assertTrue(controller.best_cost<=controller.target_cost)
         self.assertTrue(np.sum(np.square(controller.best_params))<=controller.target_cost)
     
-    
+    def asserts_for_trust_region(self,controller):
+        if not controller.learner.has_trust_region:
+            return
+        if len(controller.out_params) < 2:
+            return
+        last_out_param = controller.out_params[0]
+        for out_param in controller.out_params[1:]:
+            self.assertTrue((out_param - last_out_param < controller.learner.trust_region).all())
+            last_out_param = out_param
+
+
 if __name__ == "__main__":
     mp.freeze_support()
     unittest.main()
