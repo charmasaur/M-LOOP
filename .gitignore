@@ -64,3 +64,6 @@ target/
 
 #Project specific files
 ExpConfig.txt
+
+# Swap files
+*.swp
