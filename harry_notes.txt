@@ -1,0 +1,3 @@
+Apparently best not to use pip for scikit-learn:  https://github.com/scikit-learn/scikit-learn/issues/4164
+Probably best option is to install core packages using pacman, and then do python setup.py develop in the virtualenv.
+had to pacman -S tk
