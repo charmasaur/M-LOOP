@@ -1,3 +1,14 @@
-Apparently best not to use pip for scikit-learn:  https://github.com/scikit-learn/scikit-learn/issues/4164
+Apparently best not to use pip for scikit-learn:  https://github.com/scikit-learn/scikit-learn/issues/4164. Although wheel is a thing that makes this doable.
 Probably best option is to install core packages using pacman, and then do python setup.py develop in the virtualenv.
 had to pacman -S tk
+
+
+May need to:
+pip install --upgrade pip
+before wheel files will work.
+
+Needed apt-get install python3-dev too (to fix can't find Python.h error)
+
+Fit double pendulum data using TF and Caffe.
+Learn about NN for regression.
+Learn about NN history -- how are more recent observations weighted relative to old ones?
