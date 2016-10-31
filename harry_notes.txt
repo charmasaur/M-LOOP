@@ -12,3 +12,4 @@ Needed apt-get install python3-dev too (to fix can't find Python.h error)
 Fit double pendulum data using TF and Caffe.
 Learn about NN for regression.
 Learn about NN history -- how are more recent observations weighted relative to old ones?
+Probably O(1000) points
