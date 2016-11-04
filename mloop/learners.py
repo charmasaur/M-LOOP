@@ -318,7 +318,69 @@ class RandomLearner(Learner, threading.Thread):
                 
         self._shut_down()
         self.log.debug('Ended Random Learner')
-    
+
+class NNLearner(Learner, threading.Thread):
+    '''
+    NN learner. Models the cost landscape with a neural network. If the current minimum is
+    unexplored, checks there. Otherwise checks somewhere unexplored.
+
+    Args:
+        **kwargs (Optional dict): Other values to be passed to Learner.
+
+    Keyword Args:
+        min_boundary (Optional [array]): If set to None, overrides default learner values and sets it to a set of value 0. Default None.
+        max_boundary (Optional [array]): If set to None overides default learner values and sets it to an array of value 1. Default None.
+        first_params (Optional [array]): The first parameters to test. If None will just randomly sample the initial condition.
+        trust_region (Optional [float or array]): The trust region defines the maximum distance the learner will travel from the current best set of parameters. If None, the learner will search everywhere. If a float, this number must be between 0 and 1 and defines maximum distance the learner will venture as a percentage of the boundaries. If it is an array, it must have the same size as the number of parameters and the numbers define the maximum absolute distance that can be moved along each direction.
+    '''
+
+    def __init__(self,
+                 trust_region=None,
+                 first_params=None,
+                 **kwargs):
+
+        super(RandomLearner,self).__init__(**kwargs)
+
+        if first_params is None:
+            self.first_params = None
+        else:
+            self.first_params = np.array(first_params, dtype=float)
+            if not self.check_num_params(self.first_params):
+                self.log.error('first_params has the wrong number of parameters:' + repr(self.first_params))
+                raise ValueError
+            if not self.check_in_boundary(self.first_params):
+                self.log.error('first_params is not in the boundary:' + repr(self.first_params))
+                raise ValueError
+
+        self._set_trust_region(trust_region)
+
+        self.archive_dict.update({'archive_type':'nn_learner'})
+
+        self.log.debug('NN learner init completed.')
+
+    def run(self):
+        self.log.debug('Starting NN Learner')
+        if self.first_params is None:
+            next_params = self.min_boundary + nr.rand(self.num_params) * self.diff_boundary
+        else:
+            next_params = self.first_params
+        while not self.end_event.is_set():
+            try:
+                self.put_params_and_get_cost(next_params)
+            except LearnerInterrupt:
+                break
+            else:
+                # TODO: Implement NN learner.
+                if self.has_trust_region:
+                    temp_min = np.maximum(self.min_boundary,next_params - self.trust_region)
+                    temp_max = np.minimum(self.max_boundary,next_params + self.trust_region)
+                    next_params = temp_min + nr.rand(self.num_params) * (temp_max - temp_min)
+                else:
+                    next_params =  self.min_boundary + nr.rand(self.num_params) * self.diff_boundary
+
+        self._shut_down()
+        self.log.debug('Ended NN Learner')
+
 class NelderMeadLearner(Learner, threading.Thread):
     '''
     Nelder-Mead learner. Executes the Nelder-Mead learner algorithm and stores the needed simplex to estimate the next points.
@@ -555,7 +617,6 @@ class NelderMeadLearner(Learner, threading.Thread):
         '''
         self.archive_dict.update({'simplex_parameters':self.simplex_params,
                                   'simplex_costs':self.simplex_costs})
-
 class DifferentialEvolutionLearner(Learner, threading.Thread):
     '''
     Adaption of the differential evolution algorithm in scipy. 

@@ -11,7 +11,7 @@ import mloop.interfaces as mli
 import logging
 import os
 
-controller_dict = {'random':1,'nelder_mead':2,'gaussian_process':3,'differential_evolution':4}
+controller_dict = {'random':1,'nelder_mead':2,'gaussian_process':3,'differential_evolution':4,'nn':5}
 number_of_controllers = 4
 default_controller_archive_filename = 'controller_archive'
 default_controller_archive_file_type = 'txt'
@@ -49,6 +49,8 @@ def create_controller(interface,
         controller = GaussianProcessController(interface, **controller_config_dict)
     elif controller_type=='differential_evolution':
         controller = DifferentialEvolutionController(interface, **controller_config_dict)
+    elif controller_type=='nn':
+        controller = NNController(interface, **controller_config_dict)
     elif controller_type=='nelder_mead':
         controller = NelderMeadController(interface, **controller_config_dict)
     elif controller_type=='random':
@@ -521,8 +523,35 @@ class DifferentialEvolutionController(Controller):
         self.learner_costs_queue.put(cost)
         return self.learner_params_queue.get()
 
+class NNController(Controller):
+    '''
+    Controller for the NN learner.
 
+    Args:
+        params_out_queue (queue): Queue for parameters to next be run by experiment.
+        costs_in_queue (queue): Queue for costs (and other details) that have been returned by experiment.
+        **kwargs (Optional [dict]): Dictionary of options to be passed to Controller parent class and NN learner.
+    '''
+    def __init__(self, interface,
+                **kwargs):
+        super(NNController,self).__init__(interface, **kwargs)
 
+        self.learner = mll.NNLearner(start_datetime = self.start_datetime,
+                                                        **self.remaining_kwargs)
+
+        self._update_controller_with_learner_attributes()
+        self.out_type.append('nn')
+
+    def _next_params(self):
+        '''
+        Gets next parameters from nn learner.
+        '''
+        if self.curr_bad:
+            cost = float('inf')
+        else:
+            cost = self.curr_cost
+        self.learner_costs_queue.put(cost)
+        return self.learner_params_queue.get()
 
 class GaussianProcessController(Controller):
     '''
@@ -772,4 +801,3 @@ class GaussianProcessController(Controller):
 
     
 
-        
