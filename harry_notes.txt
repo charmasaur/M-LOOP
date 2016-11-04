@@ -13,3 +13,25 @@ Fit double pendulum data using TF and Caffe.
 Learn about NN for regression.
 Learn about NN history -- how are more recent observations weighted relative to old ones?
 Probably O(1000) points
+
+----
+Controller is actually pretty lightweight (except for GP). It really just sets stuff up, then runs
+the optimisation loop in which it talks to the interface and the learner.
+
+Controller's optimization:
+Sends params out to the experiment (_put_params_and_out_dict).
+Waits for cost (_get_cost_and_in_dict).
+Sends those costs to the learner, and blocks on the new params coming back (_next_params).
+Repeat.
+
+GP is a bit more magic, haven't looked at that yet.
+
+----
+Learner:
+put_params_and_get_cost sends parameters out (by putting them on the params_out_queue), then waits
+for the cost to come back (by essentially blocking on the costs_in_queue queue, although
+interrupting every minute to see if it's meant to be quitting).
+
+----
+Note that random does a bit of a hack -- the controller doesn't send a real cost in _next_params
+and instead sends the current best params, and the learner uses this to enforce the trust region.
