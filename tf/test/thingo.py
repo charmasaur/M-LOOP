@@ -6,8 +6,9 @@ import numpy as np
 TRAIN_FN = "train.txt"
 TEST_FN = "test.txt"
 INPUT_DIM = 1
-LAYER_DIM = 100
+HIDDEN_LAYER_DIMS = [10, 10, 10, 10]
 OUTPUT_DIM = 1
+LEARNING_RATE = 0.01
 TRAIN_RUNS = 1000
 
 # Load training data.
@@ -26,18 +27,27 @@ x = tf.placeholder(tf.float32, shape=[None, INPUT_DIM])
 y_ = tf.placeholder(tf.float32, shape=[None, OUTPUT_DIM])
 
 # Variables.
-W1 = tf.Variable(tf.random_normal([INPUT_DIM, LAYER_DIM]))
-b1 = tf.Variable(tf.random_normal([LAYER_DIM]))
-W2 = tf.Variable(tf.random_normal([LAYER_DIM, OUTPUT_DIM]))
-b2 = tf.Variable(tf.random_normal([OUTPUT_DIM]))
+Ws = []
+bs = []
+
+prev_layer_dim = INPUT_DIM
+for dim in HIDDEN_LAYER_DIMS:
+  Ws.append(tf.Variable(tf.random_normal([prev_layer_dim, dim])))
+  bs.append(tf.Variable(tf.random_normal([dim])))
+  prev_layer_dim = dim
+
+Wout = tf.Variable(tf.random_normal([prev_layer_dim, OUTPUT_DIM]))
+bout = tf.Variable(tf.random_normal([OUTPUT_DIM]))
 
 # Computations.
-h = tf.nn.sigmoid(tf.matmul(x, W1) + b1)
-y = tf.matmul(h, W2) + b2
+hs = [x]
+for (W, b) in zip(Ws, bs):
+  hs.append(tf.nn.sigmoid(tf.matmul(hs[-1], W) + b))
+y = tf.matmul(hs[-1], Wout) + bout
 
 # Training.
 loss_func = tf.reduce_mean(tf.reduce_sum(tf.square(y - y_), reduction_indices=[1]))
-train_step = tf.train.AdamOptimizer(0.5).minimize(loss_func)
+train_step = tf.train.AdamOptimizer(LEARNING_RATE).minimize(loss_func)
 
 # Session.
 print("Starting session");
