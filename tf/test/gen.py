@@ -3,12 +3,12 @@ import json
 
 train_fn = 'train.txt'
 test_fn = 'test.txt'
-noise_sd = 1.
+noise_sd = 0.2
 train_examples = 100
 test_examples = 10
 
 def func(x):
-    return 10./(1.+x**2) + np.random.normal(0., noise_sd)
+    return 5./(1.+(x-5.)**2) + 10./(1.+x**2) + np.random.normal(0., noise_sd)
 
 #train_f = open(train_fn, 'w')
 json.dump([(x, func(x)) for x in np.random.uniform(-5., 5., train_examples)], open(train_fn, 'w'))
