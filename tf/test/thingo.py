@@ -49,6 +49,9 @@ y = tf.matmul(hs[-1], Wout) + bout
 loss_func = tf.reduce_mean(tf.reduce_sum(tf.square(y - y_), reduction_indices=[1]))
 train_step = tf.train.AdamOptimizer(LEARNING_RATE).minimize(loss_func)
 
+# Gradient with respect to x.
+dydx = tf.gradients(y, x)[0]
+
 # Session.
 print("Starting session");
 session = tf.InteractiveSession()
@@ -73,6 +76,16 @@ def plot():
     plt.plot(predicted_x, predicted_y, color='r')
     plt.show()
 
+def plotgrad():
+    predicted_x = [[x] for x in np.linspace(2. * min(train_x)[0], 2. * max(train_x)[0], 1000)]
+    predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
+    predicted_grad = [r[0] for r in session.run(dydx, feed_dict={x: predicted_x})]
+    plt.plot(predicted_x, predicted_y, color='r')
+    plt.plot(predicted_x, predicted_grad, color='b')
+    plt.show()
+
+
 train(TRAIN_RUNS)
 print("Test loss %f" % loss(test_x, test_y))
 plot()
+plotgrad()
