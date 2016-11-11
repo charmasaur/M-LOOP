@@ -9,7 +9,9 @@ INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [10, 10, 10, 10]
 OUTPUT_DIM = 1
 LEARNING_RATE = 0.01
+OPTIMISE_RATE = 0.5
 TRAIN_RUNS = 1000
+OPTIMISE_RUNS = 30
 
 # Load training data.
 print("Loading data")
@@ -40,10 +42,16 @@ Wout = tf.Variable(tf.random_normal([prev_layer_dim, OUTPUT_DIM]))
 bout = tf.Variable(tf.random_normal([OUTPUT_DIM]))
 
 # Computations.
-hs = [x]
-for (W, b) in zip(Ws, bs):
-  hs.append(tf.nn.sigmoid(tf.matmul(hs[-1], W) + b))
-y = tf.matmul(hs[-1], Wout) + bout
+
+# Use a function to generate a y variable as a function of an x variable so that we can generate
+# multiple variable pairs (one for training, one for optimising, etc...).
+def get_y(x_var):
+  prev_h = x_var
+  for (W, b) in zip(Ws, bs):
+    prev_h = tf.nn.sigmoid(tf.matmul(prev_h, W) + b)
+  return tf.matmul(prev_h, Wout) + bout
+
+y = get_y(x)
 
 # Training.
 loss_func = tf.reduce_mean(tf.reduce_sum(tf.square(y - y_), reduction_indices=[1]))
@@ -51,6 +59,11 @@ train_step = tf.train.AdamOptimizer(LEARNING_RATE).minimize(loss_func)
 
 # Gradient with respect to x.
 dydx = tf.gradients(y, x)[0]
+
+# Find x to maximise the predicted value.
+x_opt = tf.Variable(tf.random_normal([1, INPUT_DIM]))
+y_opt = get_y(x_opt)
+opt_step = tf.train.AdamOptimizer(OPTIMISE_RATE).minimize(-y_opt, var_list=[x_opt])
 
 # Session.
 print("Starting session");
@@ -65,15 +78,25 @@ def train(steps=1):
     for i in range(steps):
         session.run(train_step, feed_dict={x: train_x, y_: train_y})
         losses.append(loss(train_x, train_y))
-        print("Run %d, loss %f" % (i, losses[-1]))
+        print("Training run %d, loss %f" % (i, losses[-1]))
     plt.plot(losses)
     plt.show()
+
+def optimise(steps=1):
+    x_vals = []
+    y_vals = []
+    for i in range(steps):
+        session.run(opt_step)
+        x_vals.append(session.run(x_opt)[0])
+        y_vals.append(session.run(y_opt)[0])
+        print("Optimising run %d, f(%f) = %f" % (i, x_vals[-1], y_vals[-1]))
 
 def plot():
     predicted_x = [[x] for x in np.linspace(2. * min(train_x)[0], 2. * max(train_x)[0], 1000)]
     predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
     plt.scatter(train_x, train_y)
     plt.plot(predicted_x, predicted_y, color='r')
+    plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='g')
     plt.show()
 
 def plotgrad():
@@ -87,5 +110,5 @@ def plotgrad():
 
 train(TRAIN_RUNS)
 print("Test loss %f" % loss(test_x, test_y))
+optimise(OPTIMISE_RUNS)
 plot()
-plotgrad()
