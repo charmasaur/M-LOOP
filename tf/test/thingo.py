@@ -58,9 +58,13 @@ def loss(xs, ys):
     return session.run(loss_func, feed_dict={x: xs, y_: ys})
 
 def train(steps=1):
+    losses = []
     for i in range(steps):
         session.run(train_step, feed_dict={x: train_x, y_: train_y})
-        print("Run %d, loss %f" % (i, loss(train_x, train_y)))
+        losses.append(loss(train_x, train_y))
+        print("Run %d, loss %f" % (i, losses[-1]))
+    plt.plot(losses)
+    plt.show()
 
 def plot():
     predicted_x = [[x] for x in np.linspace(2. * min(train_x)[0], 2. * max(train_x)[0], 1000)]
