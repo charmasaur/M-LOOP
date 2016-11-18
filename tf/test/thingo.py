@@ -10,8 +10,8 @@ HIDDEN_LAYER_DIMS = [10, 10, 10, 10]
 OUTPUT_DIM = 1
 LEARNING_RATE = 0.01
 OPTIMISE_RATE = 0.5
-TRAIN_RUNS = 1000
-OPTIMISE_RUNS = 30
+TRAIN_EPOCHS = 300
+OPTIMISE_EPOCHS = 1000
 
 # Load training data.
 print("Loading data")
@@ -73,19 +73,19 @@ session.run(tf.initialize_all_variables())
 def loss(xs, ys):
     return session.run(loss_func, feed_dict={x: xs, y_: ys})
 
-def train(steps=1):
+def train(epochs=1):
     losses = []
-    for i in range(steps):
+    for i in range(epochs):
         session.run(train_step, feed_dict={x: train_x, y_: train_y})
         losses.append(loss(train_x, train_y))
-        print("Training run %d, loss %f" % (i, losses[-1]))
+        print("Training epoch %d, loss %f" % (i, losses[-1]))
     plt.plot(losses)
     plt.show()
 
-def optimise(steps=1):
+def optimise(epochs=1):
     x_vals = []
     y_vals = []
-    for i in range(steps):
+    for i in range(epochs):
         session.run(opt_step)
         x_vals.append(session.run(x_opt)[0])
         y_vals.append(session.run(y_opt)[0])
@@ -108,7 +108,7 @@ def plotgrad():
     plt.show()
 
 
-train(TRAIN_RUNS)
+train(TRAIN_EPOCHS)
 print("Test loss %f" % loss(test_x, test_y))
-optimise(OPTIMISE_RUNS)
+optimise(OPTIMISE_EPOCHS)
 plot()
