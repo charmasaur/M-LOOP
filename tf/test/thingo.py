@@ -99,7 +99,7 @@ def optimise(epochs=1):
         print("Optimising run %d, f(%f) = %f" % (i, x_vals[-1], y_vals[-1]))
 
 def plot():
-    predicted_x = [[x] for x in np.linspace(2. * min(train_x)[0], 2. * max(train_x)[0], 1000)]
+    predicted_x = [[x] for x in np.linspace(1.5 * min(train_x)[0], 1.5 * max(train_x)[0], 1000)]
     predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
     plt.scatter(train_x, train_y)
     plt.plot(predicted_x, predicted_y, color='r')
@@ -107,7 +107,7 @@ def plot():
     plt.show()
 
 def plotgrad():
-    predicted_x = [[x] for x in np.linspace(2. * min(train_x)[0], 2. * max(train_x)[0], 1000)]
+    predicted_x = [[x] for x in np.linspace(1.5 * min(train_x)[0], 1.5 * max(train_x)[0], 1000)]
     predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
     predicted_grad = [r[0] for r in session.run(dydx, feed_dict={x: predicted_x})]
     plt.plot(predicted_x, predicted_y, color='r')
