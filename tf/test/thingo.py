@@ -9,10 +9,10 @@ TEST_FN = "test.txt"
 INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [10, 10, 10, 10]
 OUTPUT_DIM = 1
-LEARNING_RATE = 0.01
-OPTIMISE_RATE = 0.5
 TRAIN_EPOCHS = 300
 OPTIMISE_EPOCHS = 1000
+TRAINER = tf.train.AdamOptimizer()
+OPTIMISER = tf.train.AdamOptimizer()
 
 # Load training data.
 print("Loading data")
@@ -56,7 +56,7 @@ y = get_y(x)
 
 # Training.
 loss_func = tf.reduce_mean(tf.reduce_sum(tf.square(y - y_), reduction_indices=[1]))
-train_step = tf.train.AdamOptimizer(LEARNING_RATE).minimize(loss_func)
+train_step = TRAINER.minimize(loss_func)
 
 # Gradient with respect to x.
 dydx = tf.gradients(y, x)[0]
@@ -64,7 +64,7 @@ dydx = tf.gradients(y, x)[0]
 # Find x to maximise the predicted value.
 x_opt = tf.Variable(tf.random_normal([1, INPUT_DIM]))
 y_opt = get_y(x_opt)
-opt_step = tf.train.AdamOptimizer(OPTIMISE_RATE).minimize(-y_opt, var_list=[x_opt])
+opt_step = OPTIMISER.minimize(-y_opt, var_list=[x_opt])
 
 # Session.
 print("Starting session");
