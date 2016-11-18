@@ -6,7 +6,6 @@ import numpy as np
 
 # Input files
 TRAIN_FN = "train.txt"
-TEST_FN = "test.txt"
 
 # Network architecture
 INPUT_DIM = 1
@@ -15,7 +14,7 @@ OUTPUT_DIM = 1
 
 # Training
 BATCH_SIZE = 100
-TRAIN_EPOCHS = 100
+TRAIN_EPOCHS_PER_POINT = 100
 TRAIN_KEEP_PROB = 1
 TRAINER = tf.train.AdamOptimizer()
 
@@ -25,12 +24,12 @@ OPTIMISER = tf.train.AdamOptimizer()
 
 # Load training data.
 print("Loading data")
-_train = json.load(open(TRAIN_FN, "r"))
-train_x = [[t[0]] for t in _train]
-train_y = [[t[1]] for t in _train]
-_test = json.load(open(TEST_FN, "r"))
-test_x = [[t[0]] for t in _test]
-test_y = [[t[1]] for t in _test]
+_data = json.load(open(TRAIN_FN, "r"))
+next_data_index = 0
+data_x = [[t[0]] for t in _data]
+data_y = [[t[1]] for t in _data]
+train_x = []
+train_y = []
 
 # TensorFlow setup.
 print("Setting up TF")
@@ -118,10 +117,11 @@ def _get_xrange():
 def plot():
     predicted_x = _get_xrange()
     predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
+    plt.clf()
     plt.scatter(train_x, train_y)
     plt.plot(predicted_x, predicted_y, color='r')
     plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r')
-    plt.show()
+    plt.draw()
 
 def plotgrad():
     predicted_x = _get_xrange()
@@ -131,11 +131,21 @@ def plotgrad():
     plt.plot(predicted_x, predicted_grad, color='b')
     plt.show()
 
+# Add a point to the training set.
 def add_train(nx, ny):
     train_x.append([nx])
     train_y.append([ny])
 
-train(epochs=TRAIN_EPOCHS, plot=True)
-print("Test loss %f" % loss(test_x, test_y))
-optimise(OPTIMISE_EPOCHS)
-plot()
+# Get the next data point and add it to the training set.
+def next_point():
+    global next_data_index
+    add_train(data_x[next_data_index][0], data_y[next_data_index][0])
+    next_data_index = next_data_index + 1
+
+# Add training examples one at a time, training after each one.
+plt.ion()
+for i in range(1000):
+    next_point()
+    train(TRAIN_EPOCHS_PER_POINT)
+    plot()
+    plt.pause(0.05)
