@@ -122,6 +122,9 @@ def plotgrad():
     plt.plot(predicted_x, predicted_grad, color='b')
     plt.show()
 
+def add_train(nx, ny):
+    train_x.append([nx])
+    train_y.append([ny])
 
 train(epochs=TRAIN_EPOCHS, plot=True)
 print("Test loss %f" % loss(test_x, test_y))
