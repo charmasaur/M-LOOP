@@ -101,7 +101,7 @@ def optimise(epochs=1):
 
 def _get_xrange():
     _mid_train_x = (max(train_x)[0] + min(train_x)[0]) / 2
-    _wid_train_x = max(train_x[0]) - min(train_x)[0]
+    _wid_train_x = max(train_x)[0] - min(train_x)[0]
     min_plot_x = _mid_train_x - _wid_train_x * 0.75
     max_plot_x = _mid_train_x + _wid_train_x * 0.75
     return [[x] for x in np.linspace(min_plot_x, max_plot_x, 1000)]
