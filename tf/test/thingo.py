@@ -75,7 +75,7 @@ session.run(tf.initialize_all_variables())
 def loss(xs, ys):
     return session.run(loss_func, feed_dict={x: xs, y_: ys})
 
-def train(epochs=1):
+def train(epochs=1, plot=False):
     losses = []
     for i in range(epochs):
         all_indices = np.random.permutation(len(train_x))
@@ -86,8 +86,9 @@ def train(epochs=1):
             session.run(train_step, feed_dict={x: batch_x, y_: batch_y})
         losses.append(math.log(loss(train_x, train_y)))
         print("Training epoch %d, loss %f" % (i, losses[-1]))
-    plt.plot(losses)
-    plt.show()
+    if plot:
+        plt.plot(losses)
+        plt.show()
 
 def optimise(epochs=1):
     x_vals = []
@@ -115,7 +116,7 @@ def plotgrad():
     plt.show()
 
 
-train(TRAIN_EPOCHS)
+train(epochs=TRAIN_EPOCHS, plot=True)
 print("Test loss %f" % loss(test_x, test_y))
 optimise(OPTIMISE_EPOCHS)
 plot()
