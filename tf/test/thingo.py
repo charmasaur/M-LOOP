@@ -4,15 +4,23 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 
+# Input files
 TRAIN_FN = "train.txt"
 TEST_FN = "test.txt"
+
+# Network architecture
 INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [256, 256]
 OUTPUT_DIM = 1
+
+# Training
 BATCH_SIZE = 100
 TRAIN_EPOCHS = 100
-OPTIMISE_EPOCHS = 1000
+TRAIN_KEEP_PROB = 1
 TRAINER = tf.train.AdamOptimizer()
+
+# Optimisation
+OPTIMISE_EPOCHS = 1000
 OPTIMISER = tf.train.AdamOptimizer()
 
 # Load training data.
@@ -29,6 +37,7 @@ print("Setting up TF")
 # Inputs.
 x = tf.placeholder(tf.float32, shape=[None, INPUT_DIM])
 y_ = tf.placeholder(tf.float32, shape=[None, OUTPUT_DIM])
+keep_prob = tf.placeholder_with_default(1., shape=[])
 
 # Variables.
 Ws = []
@@ -50,7 +59,7 @@ bout = tf.Variable(tf.random_normal([OUTPUT_DIM]))
 def get_y(x_var):
   prev_h = x_var
   for (W, b) in zip(Ws, bs):
-    prev_h = tf.nn.sigmoid(tf.matmul(prev_h, W) + b)
+    prev_h = tf.nn.dropout(tf.nn.sigmoid(tf.matmul(prev_h, W) + b), keep_prob=keep_prob)
   return tf.matmul(prev_h, Wout) + bout
 
 y = get_y(x)
@@ -83,7 +92,7 @@ def train(epochs=1, plot=False):
             batch_indices = all_indices[j * BATCH_SIZE : (j + 1) * BATCH_SIZE]
             batch_x = [train_x[index] for index in batch_indices]
             batch_y = [train_y[index] for index in batch_indices]
-            session.run(train_step, feed_dict={x: batch_x, y_: batch_y})
+            session.run(train_step, feed_dict={x: batch_x, y_: batch_y, keep_prob: TRAIN_KEEP_PROB})
         losses.append(math.log(loss(train_x, train_y)))
         print("Training epoch %d, loss %f" % (i, losses[-1]))
     if plot:
