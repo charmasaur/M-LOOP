@@ -111,7 +111,7 @@ def plot():
     predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
     plt.scatter(train_x, train_y)
     plt.plot(predicted_x, predicted_y, color='r')
-    plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='g')
+    plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r')
     plt.show()
 
 def plotgrad():
