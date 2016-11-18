@@ -98,14 +98,19 @@ def train(epochs=1, plot=False):
         plt.plot(losses)
         plt.show()
 
-def optimise(epochs=1):
+def optimise(epochs=1, plot=False):
+    losses = []
     x_vals = []
     y_vals = []
     for i in range(epochs):
         session.run(opt_step)
         x_vals.append(session.run(x_opt)[0])
         y_vals.append(session.run(y_opt)[0])
+        losses.append(session.run(y_opt)[0])
         print("Optimising run %d, f(%f) = %f" % (i, x_vals[-1], y_vals[-1]))
+    if plot:
+        plt.plot(losses)
+        plt.show()
 
 def _get_xrange():
     _mid_train_x = (max(train_x)[0] + min(train_x)[0]) / 2
