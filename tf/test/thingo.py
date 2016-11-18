@@ -14,13 +14,13 @@ OUTPUT_DIM = 1
 
 # Training
 BATCH_SIZE = 100
-TRAIN_EPOCHS_PER_POINT = 100
+TRAIN_EPOCHS_PER_POINT = 10
 TRAIN_KEEP_PROB = 1
 TRAINER = tf.train.AdamOptimizer()
 
 # Optimisation
-OPTIMISE_EPOCHS = 1000
-OPTIMISER = tf.train.AdamOptimizer()
+OPTIMISE_EPOCHS = 100
+OPTIMISER = tf.train.GradientDescentOptimizer(1.)
 
 # Load training data.
 print("Loading data")
@@ -120,7 +120,7 @@ def plot():
     plt.clf()
     plt.scatter(train_x, train_y)
     plt.plot(predicted_x, predicted_y, color='r')
-    plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r')
+    #plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r')
     plt.draw()
 
 def plotgrad():
@@ -147,5 +147,6 @@ plt.ion()
 for i in range(1000):
     next_point()
     train(TRAIN_EPOCHS_PER_POINT)
+    #optimise(OPTIMISE_EPOCHS)
     plot()
     plt.pause(0.05)
