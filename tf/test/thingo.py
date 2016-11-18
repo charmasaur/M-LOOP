@@ -9,6 +9,7 @@ TEST_FN = "test.txt"
 INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [10, 10, 10, 10]
 OUTPUT_DIM = 1
+BATCH_SIZE = 100
 TRAIN_EPOCHS = 300
 OPTIMISE_EPOCHS = 1000
 TRAINER = tf.train.AdamOptimizer()
@@ -77,6 +78,12 @@ def loss(xs, ys):
 def train(epochs=1):
     losses = []
     for i in range(epochs):
+        all_indices = np.random.permutation(len(train_x))
+        for j in range(math.ceil(len(all_indices) / BATCH_SIZE)):
+            batch_indices = all_indices[j * BATCH_SIZE : (j + 1) * BATCH_SIZE]
+            batch_x = [train_x[index] for index in batch_indices]
+            batch_y = [train_y[index] for index in batch_indices]
+            session.run(train_step, feed_dict={x: batch_x, y_: batch_y})
         losses.append(math.log(loss(train_x, train_y)))
         print("Training epoch %d, loss %f" % (i, losses[-1]))
     plt.plot(losses)
