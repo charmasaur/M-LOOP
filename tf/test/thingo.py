@@ -1,5 +1,6 @@
 import tensorflow as tf
 import json
+import math
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -76,8 +77,7 @@ def loss(xs, ys):
 def train(epochs=1):
     losses = []
     for i in range(epochs):
-        session.run(train_step, feed_dict={x: train_x, y_: train_y})
-        losses.append(loss(train_x, train_y))
+        losses.append(math.log(loss(train_x, train_y)))
         print("Training epoch %d, loss %f" % (i, losses[-1]))
     plt.plot(losses)
     plt.show()
