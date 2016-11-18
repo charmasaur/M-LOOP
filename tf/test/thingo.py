@@ -155,3 +155,10 @@ for i in range(len(data_x)):
     #optimise(OPTIMISE_EPOCHS)
     plot()
     plt.pause(0.05)
+
+#for i in range(len(data_x)):
+#    next_point()
+#train(100)
+#optimise(OPTIMISE_EPOCHS, plot=True)
+#plot()
+#plt.show()
