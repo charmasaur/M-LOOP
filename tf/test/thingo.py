@@ -149,7 +149,7 @@ def next_point():
 
 # Add training examples one at a time, training after each one.
 plt.ion()
-for i in range(1000):
+for i in range(len(data_x)):
     next_point()
     train(TRAIN_EPOCHS_PER_POINT)
     #optimise(OPTIMISE_EPOCHS)
