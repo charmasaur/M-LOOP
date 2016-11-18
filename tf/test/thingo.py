@@ -7,10 +7,10 @@ import numpy as np
 TRAIN_FN = "train.txt"
 TEST_FN = "test.txt"
 INPUT_DIM = 1
-HIDDEN_LAYER_DIMS = [10, 10, 10, 10]
+HIDDEN_LAYER_DIMS = [256, 256]
 OUTPUT_DIM = 1
 BATCH_SIZE = 100
-TRAIN_EPOCHS = 300
+TRAIN_EPOCHS = 100
 OPTIMISE_EPOCHS = 1000
 TRAINER = tf.train.AdamOptimizer()
 OPTIMISER = tf.train.AdamOptimizer()
