@@ -3,6 +3,7 @@ import json
 import math
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.optimize as opt
 
 # Input files
 TRAIN_FN = "train.txt"
@@ -73,6 +74,9 @@ dydx = tf.gradients(y, x)[0]
 # Find x to maximise the predicted value.
 x_opt = tf.Variable(tf.random_normal([1, INPUT_DIM]))
 y_opt = get_y(x_opt)
+x_opt_manual = tf.placeholder(tf.float32, shape=[1, INPUT_DIM])
+set_x_opt = x_opt.assign(x_opt_manual)
+reset_opt_step = x_opt.assign(tf.random_uniform([1, INPUT_DIM], -10, 10))
 opt_step = OPTIMISER.minimize(-y_opt, var_list=[x_opt])
 
 # Session.
@@ -99,18 +103,31 @@ def train(epochs=1, plot=False):
         plt.show()
 
 def optimise(epochs=1, plot=False):
-    losses = []
-    x_vals = []
-    y_vals = []
-    for i in range(epochs):
-        session.run(opt_step)
-        x_vals.append(session.run(x_opt)[0])
-        y_vals.append(session.run(y_opt)[0])
-        losses.append(session.run(y_opt)[0])
-        print("Optimising run %d, f(%f) = %f" % (i, x_vals[-1], y_vals[-1]))
-    if plot:
-        plt.plot(losses)
-        plt.show()
+    fun = lambda test_x: -session.run(y, feed_dict={x: [test_x]})[0]
+    grad = lambda test_x: -session.run(dydx, feed_dict={x: [test_x]})[0]
+    #xopt = opt.fmin(fun, train_x[np.argmax(train_y)])
+    #xopt = opt.minimize(
+    #        fun=fun,
+    #        x0=[0],
+    #        jac=grad).x
+    xopt = opt.basinhopping(
+            func=fun,
+            x0=[0]).x
+    print("Maybe found maximum, f(%f) = %f" % (xopt, -fun(xopt)))
+    session.run(set_x_opt, feed_dict={x_opt_manual: [xopt]})
+    #losses = []
+    #x_vals = []
+    #y_vals = []
+    #session.run(reset_opt_step)
+    #for i in range(epochs):
+    #    session.run(opt_step)
+    #    x_vals.append(session.run(x_opt)[0])
+    #    y_vals.append(session.run(y_opt)[0])
+    #    losses.append(session.run(y_opt)[0])
+    #    print("Optimising run %d, f(%f) = %f" % (i, x_vals[-1], y_vals[-1]))
+    #if plot:
+    #    plt.plot(losses)
+    #    plt.show()
 
 def _get_xrange():
     _mid_train_x = (max(train_x)[0] + min(train_x)[0]) / 2
@@ -125,7 +142,7 @@ def plot():
     plt.clf()
     plt.scatter(train_x, train_y)
     plt.plot(predicted_x, predicted_y, color='r')
-    #plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r')
+    plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r', marker='x')
     plt.draw()
 
 def plotgrad():
