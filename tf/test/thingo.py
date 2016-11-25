@@ -27,11 +27,8 @@ OPTIMISER = tf.train.GradientDescentOptimizer(1.)
 # Load training data.
 print("Loading data")
 _data = json.load(open(TRAIN_FN, "r"))
-next_data_index = 0
 data_x = [[t[0]] for t in _data]
 data_y = [[t[1]] for t in _data]
-train_x = []
-train_y = []
 
 # TensorFlow setup.
 print("Setting up TF")
@@ -86,7 +83,13 @@ opt_step = OPTIMISER.minimize(-y_opt, var_list=[x_opt])
 # Session.
 print("Starting session");
 session = tf.InteractiveSession()
-session.run(tf.initialize_all_variables())
+
+def reset():
+    global next_data_index, train_x, train_y
+    next_data_index = 0
+    train_x = []
+    train_y = []
+    session.run(tf.initialize_all_variables())
 
 def loss(xs, ys, reg=True):
     return session.run(loss_func, feed_dict={x: xs, y_: ys, reg_co: TRAIN_REG_CO if reg else 0})
@@ -169,17 +172,22 @@ def next_point():
     next_data_index = next_data_index + 1
 
 # Add training examples one at a time, training after each one.
-plt.ion()
-for i in range(len(data_x)):
-    next_point()
-    train(TRAIN_EPOCHS_PER_POINT)
-    #optimise(OPTIMISE_EPOCHS)
-    plot()
-    plt.pause(0.05)
+def run_online():
+    plt.ion()
+    for i in range(len(data_x)):
+        next_point()
+        train(TRAIN_EPOCHS_PER_POINT)
+        optimise(OPTIMISE_EPOCHS)
+        plot()
+        plt.pause(0.05)
 
-#for i in range(len(data_x)):
-#    next_point()
-#train(100)
-#optimise(OPTIMISE_EPOCHS, plot=True)
-#plot()
-#plt.show()
+def run_batch():
+    for i in range(len(data_x)):
+        next_point()
+    train(100)
+    #optimise(OPTIMISE_EPOCHS, plot=True)
+    plot()
+    plt.show()
+
+reset()
+run_online()
