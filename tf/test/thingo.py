@@ -17,6 +17,7 @@ OUTPUT_DIM = 1
 BATCH_SIZE = 100
 TRAIN_EPOCHS_PER_POINT = 10
 TRAIN_KEEP_PROB = 1
+TRAIN_REG_CO = 0.001 / (256 * 256)
 TRAINER = tf.train.AdamOptimizer()
 
 # Optimisation
@@ -38,6 +39,7 @@ print("Setting up TF")
 x = tf.placeholder(tf.float32, shape=[None, INPUT_DIM])
 y_ = tf.placeholder(tf.float32, shape=[None, OUTPUT_DIM])
 keep_prob = tf.placeholder_with_default(1., shape=[])
+reg_co = tf.placeholder_with_default(0., shape=[])
 
 # Variables.
 Ws = []
@@ -65,7 +67,9 @@ def get_y(x_var):
 y = get_y(x)
 
 # Training.
-loss_func = tf.reduce_mean(tf.reduce_sum(tf.square(y - y_), reduction_indices=[1]))
+loss_func = (
+        tf.reduce_mean(tf.reduce_sum(tf.square(y - y_), reduction_indices=[1]))
+        + reg_co * sum([tf.nn.l2_loss(W) for W in Ws + [Wout]]))
 train_step = TRAINER.minimize(loss_func)
 
 # Gradient with respect to x.
@@ -84,8 +88,8 @@ print("Starting session");
 session = tf.InteractiveSession()
 session.run(tf.initialize_all_variables())
 
-def loss(xs, ys):
-    return session.run(loss_func, feed_dict={x: xs, y_: ys})
+def loss(xs, ys, reg=True):
+    return session.run(loss_func, feed_dict={x: xs, y_: ys, reg_co: TRAIN_REG_CO if reg else 0})
 
 def train(epochs=1, plot=False):
     losses = []
@@ -95,9 +99,9 @@ def train(epochs=1, plot=False):
             batch_indices = all_indices[j * BATCH_SIZE : (j + 1) * BATCH_SIZE]
             batch_x = [train_x[index] for index in batch_indices]
             batch_y = [train_y[index] for index in batch_indices]
-            session.run(train_step, feed_dict={x: batch_x, y_: batch_y, keep_prob: TRAIN_KEEP_PROB})
+            session.run(train_step, feed_dict={x: batch_x, y_: batch_y, keep_prob: TRAIN_KEEP_PROB, reg_co: TRAIN_REG_CO})
         losses.append(math.log(loss(train_x, train_y)))
-        print("Training epoch %d, loss %f" % (i, losses[-1]))
+        print("Training epoch %d, log loss %f (unreg %f)" % (i, losses[-1], math.log(loss(train_x, train_y, reg=False))))
     if plot:
         plt.plot(losses)
         plt.show()
