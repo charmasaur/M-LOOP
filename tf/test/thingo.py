@@ -15,7 +15,7 @@ OUTPUT_DIM = 1
 
 # Training
 BATCH_SIZE = 100
-TRAIN_EPOCHS_PER_POINT = 10
+TRAIN_EPOCHS_PER_POINT = 300
 TRAIN_KEEP_PROB = 1
 TRAIN_REG_CO = 0.001 / (256 * 256)
 TRAINER = tf.train.AdamOptimizer()
@@ -44,7 +44,7 @@ bs = []
 
 prev_layer_dim = INPUT_DIM
 for dim in HIDDEN_LAYER_DIMS:
-  Ws.append(tf.Variable(tf.random_normal([prev_layer_dim, dim])))
+  Ws.append(tf.Variable(tf.random_normal([prev_layer_dim, dim], stddev=0.1)))
   bs.append(tf.Variable(tf.random_normal([dim])))
   prev_layer_dim = dim
 
