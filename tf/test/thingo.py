@@ -9,15 +9,16 @@ import scipy.optimize as opt
 TRAIN_FN = "train.txt"
 
 # Network architecture
-INPUT_DIM = 1
-HIDDEN_LAYER_DIMS = [256, 256]
+INPUT_DIM = 2
+HIDDEN_LAYER_DIMS = [120];
+#HIDDEN_LAYER_DIMS = [30, 30, 30, 30];
 OUTPUT_DIM = 1
 
 # Training
 BATCH_SIZE = 100
 TRAIN_EPOCHS_PER_POINT = 300
 TRAIN_KEEP_PROB = 1
-TRAIN_REG_CO = 0.001 / (256 * 256)
+TRAIN_REG_CO = 0#0.001 / (256 * 256)
 TRAINER = tf.train.AdamOptimizer()
 
 # Optimisation
@@ -27,8 +28,8 @@ OPTIMISER = tf.train.GradientDescentOptimizer(1.)
 # Load training data.
 print("Loading data")
 _data = json.load(open(TRAIN_FN, "r"))
-data_x = [[t[0]] for t in _data]
-data_y = [[t[1]] for t in _data]
+data_x = [t[0] for t in _data]
+data_y = [t[1] for t in _data]
 
 # TensorFlow setup.
 print("Setting up TF")
@@ -44,7 +45,7 @@ bs = []
 
 prev_layer_dim = INPUT_DIM
 for dim in HIDDEN_LAYER_DIMS:
-  Ws.append(tf.Variable(tf.random_normal([prev_layer_dim, dim], stddev=0.1)))
+  Ws.append(tf.Variable(tf.random_normal([prev_layer_dim, dim])))
   bs.append(tf.Variable(tf.random_normal([dim])))
   prev_layer_dim = dim
 
@@ -144,13 +145,33 @@ def _get_xrange():
     return [[x] for x in np.linspace(min_plot_x, max_plot_x, 1000)]
 
 def plot():
-    predicted_x = _get_xrange()
-    predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
-    plt.clf()
-    plt.scatter(train_x, train_y)
-    plt.plot(predicted_x, predicted_y, color='r')
-    plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r', marker='x')
-    plt.draw()
+    if OUTPUT_DIM > 1:
+        print("Can't plot with output dim > 1")
+        return
+    if INPUT_DIM > 2:
+        print("Can't plot with input dim > 2")
+        return
+    if INPUT_DIM == 1:
+        predicted_x = _get_xrange()
+        predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
+        plt.clf()
+        plt.scatter(train_x, train_y)
+        plt.plot(predicted_x, predicted_y, color='r')
+        plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r', marker='x')
+        plt.draw()
+    elif INPUT_DIM == 2:
+        ext = 2
+        predicted_x = [(x0,x1) for x0 in np.linspace(-ext,ext,50) for x1 in np.linspace(-ext,ext,50)]
+        predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
+        miny = min(predicted_y)
+        maxy = max(predicted_y)
+        plt.clf()
+        plt.imshow((np.array(predicted_y).reshape(50,50) - miny) / (maxy - miny), extent=(-ext,ext,-ext,ext), cmap='jet')
+        plt.scatter([x for (x,_) in train_x], [y for (_,y) in train_x])
+        #plt.scatter(train_x, train_y)
+        #plt.plot(predicted_x, predicted_y, color='r')
+        #plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r', marker='x')
+        plt.draw()
 
 def plotgrad():
     predicted_x = _get_xrange()
@@ -162,13 +183,13 @@ def plotgrad():
 
 # Add a point to the training set.
 def add_train(nx, ny):
-    train_x.append([nx])
+    train_x.append(nx)
     train_y.append([ny])
 
 # Get the next data point and add it to the training set.
 def next_point():
     global next_data_index
-    add_train(data_x[next_data_index][0], data_y[next_data_index][0])
+    add_train(data_x[next_data_index], data_y[next_data_index][0])
     next_data_index = next_data_index + 1
 
 # Add training examples one at a time, training after each one.
@@ -184,10 +205,11 @@ def run_online():
 def run_batch():
     for i in range(len(data_x)):
         next_point()
-    train(100)
+    train(10000, True)
     #optimise(OPTIMISE_EPOCHS, plot=True)
     plot()
     plt.show()
 
 reset()
-run_online()
+#run_online()
+run_batch()
