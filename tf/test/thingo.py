@@ -66,7 +66,7 @@ y = get_y(x)
 # Training.
 loss_func = (
         tf.reduce_mean(tf.reduce_sum(tf.square(y - y_), reduction_indices=[1]))
-        + reg_co * sum([tf.nn.l2_loss(W) for W in Ws + [Wout]]))
+        + reg_co * tf.reduce_mean([tf.nn.l2_loss(W) for W in Ws + [Wout]]))
 train_step = TRAINER.minimize(loss_func)
 
 # Gradient with respect to x.
