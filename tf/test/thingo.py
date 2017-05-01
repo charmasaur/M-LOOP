@@ -10,7 +10,7 @@ TRAIN_FN = "train.txt"
 
 # Network architecture
 INPUT_DIM = 1
-HIDDEN_LAYER_DIMS = [256, 256]
+HIDDEN_LAYER_DIMS = [32]
 OUTPUT_DIM = 1
 
 # Training
