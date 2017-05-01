@@ -55,10 +55,13 @@ bout = tf.Variable(tf.random_normal([OUTPUT_DIM]))
 
 # Use a function to generate a y variable as a function of an x variable so that we can generate
 # multiple variable pairs (one for training, one for optimising, etc...).
+def gelu_fast(_x):
+    return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
+
 def get_y(x_var):
   prev_h = x_var
   for (W, b) in zip(Ws, bs):
-    prev_h = tf.nn.dropout(tf.abs(tf.matmul(prev_h, W) + b), keep_prob=keep_prob)
+    prev_h = tf.nn.dropout(gelu_fast(tf.matmul(prev_h, W) + b), keep_prob=keep_prob)
   return tf.matmul(prev_h, Wout) + bout
 
 y = get_y(x)
