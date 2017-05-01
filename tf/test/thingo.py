@@ -58,7 +58,7 @@ bout = tf.Variable(tf.random_normal([OUTPUT_DIM]))
 def get_y(x_var):
   prev_h = x_var
   for (W, b) in zip(Ws, bs):
-    prev_h = tf.nn.dropout(tf.nn.sigmoid(tf.matmul(prev_h, W) + b), keep_prob=keep_prob)
+    prev_h = tf.nn.dropout(tf.abs(tf.matmul(prev_h, W) + b), keep_prob=keep_prob)
   return tf.matmul(prev_h, Wout) + bout
 
 y = get_y(x)
@@ -103,8 +103,8 @@ def train(epochs=1, plot=False):
             batch_x = [train_x[index] for index in batch_indices]
             batch_y = [train_y[index] for index in batch_indices]
             session.run(train_step, feed_dict={x: batch_x, y_: batch_y, keep_prob: TRAIN_KEEP_PROB, reg_co: TRAIN_REG_CO})
-        losses.append(math.log(loss(train_x, train_y)))
-        print("Training epoch %d, log loss %f (unreg %f)" % (i, losses[-1], math.log(loss(train_x, train_y, reg=False))))
+        losses.append(math.log(1+loss(train_x, train_y)))
+        print("Training epoch %d, log loss %f (unreg %f)" % (i, losses[-1], math.log(1+loss(train_x, train_y, reg=False))))
     if plot:
         plt.plot(losses)
         plt.show()
@@ -180,6 +180,7 @@ def run_online():
         optimise(OPTIMISE_EPOCHS)
         plot()
         plt.pause(0.05)
+    plt.pause(1000)
 
 def run_batch():
     for i in range(len(data_x)):
