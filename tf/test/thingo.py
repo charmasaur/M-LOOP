@@ -10,7 +10,8 @@ TRAIN_FN = "train.txt"
 
 # Network architecture
 INPUT_DIM = 1
-HIDDEN_LAYER_DIMS = [32]
+HIDDEN_LAYER_DIMS = [32, 32]
+ACTS = [tf.abs, tf.nn.relu]
 OUTPUT_DIM = 1
 
 # Training
@@ -37,6 +38,8 @@ x = tf.placeholder(tf.float32, shape=[None, INPUT_DIM])
 y_ = tf.placeholder(tf.float32, shape=[None, OUTPUT_DIM])
 keep_prob = tf.placeholder_with_default(1., shape=[])
 reg_co = tf.placeholder_with_default(0., shape=[])
+y_ran = tf.placeholder_with_default(1., shape=[])
+y_offset = tf.placeholder_with_default(0., shape=[])
 
 # Variables.
 Ws = []
@@ -53,23 +56,25 @@ bout = tf.Variable(tf.random_normal([OUTPUT_DIM]))
 
 # Computations.
 
-# Use a function to generate a y variable as a function of an x variable so that we can generate
-# multiple variable pairs (one for training, one for optimising, etc...).
+# Approximation of GELU.
 def gelu_fast(_x):
     return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
 
+# Use a function to generate a y variable as a function of an x variable so that we can generate
+# multiple variable pairs (one for training, one for optimising, etc...).
 def get_y(x_var):
   prev_h = x_var
-  for (W, b) in zip(Ws, bs):
-    prev_h = tf.nn.dropout(gelu_fast(tf.matmul(prev_h, W) + b), keep_prob=keep_prob)
+  for (W, b, act) in zip(Ws, bs, ACTS):
+    prev_h = tf.nn.dropout(act(tf.matmul(prev_h, W) + b), keep_prob=keep_prob)
   return tf.matmul(prev_h, Wout) + bout
 
 y = get_y(x)
 
 # Training.
 loss_func = (
-        tf.reduce_mean(tf.reduce_sum(tf.square(y - y_), reduction_indices=[1]))
+        (tf.reduce_mean(tf.reduce_sum(tf.square(y - y_), reduction_indices=[1]))
         + reg_co * tf.reduce_mean([tf.nn.l2_loss(W) for W in Ws + [Wout]]))
+        * (1 + (y_offset - tf.reduce_max(y_)) * y_ran))
 train_step = TRAINER.minimize(loss_func)
 
 # Gradient with respect to x.
@@ -94,20 +99,48 @@ def reset():
     train_y = []
     session.run(tf.initialize_all_variables())
 
+def get_ran():
+    diff = max([t[0] for t in train_y]) - min([t[0] for t in train_y])
+    if False and diff > 0:
+        return 1/diff
+    return 0
+
 def loss(xs, ys, reg=True):
-    return session.run(loss_func, feed_dict={x: xs, y_: ys, reg_co: TRAIN_REG_CO if reg else 0})
+    print(str(get_ran()) + " " + str(max([t[0] for t in train_y])))
+    return session.run(loss_func, feed_dict={x: xs, y_: ys, reg_co: TRAIN_REG_CO if reg else 0,
+        y_ran: get_ran(),
+        y_offset: max([t[0] for t in train_y])
+        })
+
+def train_once():
+    all_indices = np.random.permutation(len(train_x))
+    for j in range(math.ceil(len(all_indices) / BATCH_SIZE)):
+        batch_indices = all_indices[j * BATCH_SIZE : (j + 1) * BATCH_SIZE]
+        batch_x = [train_x[index] for index in batch_indices]
+        batch_y = [train_y[index] for index in batch_indices]
+        session.run(train_step, feed_dict={x: batch_x, y_: batch_y, keep_prob: TRAIN_KEEP_PROB,
+            reg_co: TRAIN_REG_CO,
+            y_ran: get_ran(),
+            y_offset: max([t[0] for t in train_y])
+            })
+    this_loss = loss(train_x, train_y)
+    print("Log loss %f (unreg %f)" % (math.log(1+this_loss), math.log(1+loss(train_x, train_y, reg=False))))
+    return this_loss
 
 def train(epochs=1, plot=False):
     losses = []
+    best_loss = -1
     for i in range(epochs):
-        all_indices = np.random.permutation(len(train_x))
-        for j in range(math.ceil(len(all_indices) / BATCH_SIZE)):
-            batch_indices = all_indices[j * BATCH_SIZE : (j + 1) * BATCH_SIZE]
-            batch_x = [train_x[index] for index in batch_indices]
-            batch_y = [train_y[index] for index in batch_indices]
-            session.run(train_step, feed_dict={x: batch_x, y_: batch_y, keep_prob: TRAIN_KEEP_PROB, reg_co: TRAIN_REG_CO})
-        losses.append(math.log(1+loss(train_x, train_y)))
-        print("Training epoch %d, log loss %f (unreg %f)" % (i, losses[-1], math.log(1+loss(train_x, train_y, reg=False))))
+        this_loss = train_once()
+        best_loss = min(this_loss, best_loss) if best_loss >= 0 else this_loss
+        losses.append(math.log(1+this_loss))
+    print("Epochs done, training until log loss is better than %f" % (math.log(1+best_loss)))
+    # Keep training until the loss gets better
+    while True:
+        this_loss = train_once()
+        losses.append(math.log(1+this_loss))
+        if this_loss < best_loss:
+            break
     if plot:
         plt.plot(losses)
         plt.show()
@@ -142,8 +175,8 @@ def optimise(epochs=1, plot=False):
 def _get_xrange():
     _mid_train_x = (max(train_x)[0] + min(train_x)[0]) / 2
     _wid_train_x = max(train_x)[0] - min(train_x)[0]
-    min_plot_x = _mid_train_x - _wid_train_x * 0.75 * 10
-    max_plot_x = _mid_train_x + _wid_train_x * 0.75 * 10
+    min_plot_x = _mid_train_x - _wid_train_x * 0.75
+    max_plot_x = _mid_train_x + _wid_train_x * 0.75
     return [[x] for x in np.linspace(min_plot_x, max_plot_x, 1000)]
 
 def plot():
