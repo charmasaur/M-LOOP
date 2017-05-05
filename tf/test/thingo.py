@@ -29,6 +29,9 @@ TRAINER = tf.train.AdamOptimizer()
 OPTIMISE_EPOCHS = 100
 OPTIMISER = tf.train.GradientDescentOptimizer(1.)
 
+LCB_REPS = 100
+LCB_PERCENTILE = 0.1
+
 # Load training data.
 print("Loading data")
 _data = json.load(open(TRAIN_FN, "r"))
@@ -179,12 +182,44 @@ def _get_xrange():
     max_plot_x = _mid_train_x + _wid_train_x * 0.75
     return [[x] for x in np.linspace(min_plot_x, max_plot_x, 1000)]
 
+def _get_ys_dist(xs):
+    repeated_xs = xs * LCB_REPS
+    print("Getting distribution results")
+    repeated_ys = session.run(y, feed_dict={x: repeated_xs, keep_prob: TRAIN_KEEP_PROB})
+    print("Got distribution results")
+    ys = [repeated_ys[i::len(xs)] for i in range(len(xs))]
+    ys_actual = [[a[0] for a in y] for y in ys]
+    print("Unzipped")
+    for a in ys_actual:
+        a.sort()
+    print("Sorted")
+    return [[y[i] for y in ys_actual] for i in range(LCB_REPS)]
+
+def _get_ys_lcb(xs):
+    repeated_xs = xs * LCB_REPS
+    print("Getting distribution results")
+    repeated_ys = session.run(y, feed_dict={x: repeated_xs, keep_prob: TRAIN_KEEP_PROB})
+    print("Got distribution results")
+    ys = [repeated_ys[i::len(xs)] for i in range(len(xs))]
+    ys_actual = [[a[0] for a in y] for y in ys]
+    print("Unzipped")
+    res = []
+    for a in ys_actual:
+        res.append(np.mean(a) - np.std(a))
+    print("Sorted")
+    return res
+
 def plot():
     predicted_x = _get_xrange()
+    #ydist = _get_ys_dist(predicted_x)
+    ylcb = _get_ys_lcb(predicted_x)
     predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
     plt.clf()
-    plt.scatter(train_x, train_y)
+    #for (i,ys) in enumerate(ydist):
+    #    plt.scatter(predicted_x, ys, c=[i]*len(ys), vmin=0, vmax=len(ydist), cmap=plt.get_cmap("viridis"))
     plt.plot(predicted_x, predicted_y, color='r')
+    plt.plot(predicted_x, ylcb, color='b')
+    plt.scatter(train_x, train_y)
     plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r', marker='x')
     plt.draw()
 
