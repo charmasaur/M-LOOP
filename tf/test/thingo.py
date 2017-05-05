@@ -14,15 +14,15 @@ TRAIN_FN = "train.txt"
 
 # Network architecture
 INPUT_DIM = 1
-HIDDEN_LAYER_DIMS = [32, 32]
-ACTS = [tf.abs, tf.nn.relu]
+HIDDEN_LAYER_DIMS = [512] * 2
+ACTS = [tf.nn.relu] * 2
 OUTPUT_DIM = 1
 
 # Training
 BATCH_SIZE = 100
-TRAIN_EPOCHS_PER_POINT = 300
-TRAIN_KEEP_PROB = 1
-TRAIN_REG_CO = 0.001 / (256 * 256)
+TRAIN_EPOCHS_PER_POINT = 1000
+TRAIN_KEEP_PROB = 0.9
+TRAIN_REG_CO = 0#0.001
 TRAINER = tf.train.AdamOptimizer()
 
 # Optimisation
@@ -261,10 +261,11 @@ def run_online():
 def run_batch():
     for i in range(len(data_x)):
         next_point()
-    train(100)
+    train(TRAIN_EPOCHS_PER_POINT, True)
     #optimise(OPTIMISE_EPOCHS, plot=True)
     plot()
     plt.show()
 
 reset()
-run_online()
+#run_online()
+run_batch()
