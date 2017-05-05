@@ -100,13 +100,13 @@ def reset():
     session.run(tf.initialize_all_variables())
 
 def get_ran():
+    return 0
     diff = max([t[0] for t in train_y]) - min([t[0] for t in train_y])
     if False and diff > 0:
         return 1/diff
     return 0
 
 def loss(xs, ys, reg=True):
-    print(str(get_ran()) + " " + str(max([t[0] for t in train_y])))
     return session.run(loss_func, feed_dict={x: xs, y_: ys, reg_co: TRAIN_REG_CO if reg else 0,
         y_ran: get_ran(),
         y_offset: max([t[0] for t in train_y])
