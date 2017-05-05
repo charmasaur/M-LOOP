@@ -5,6 +5,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.optimize as opt
 
+# Approximation of GELU.
+def gelu_fast(_x):
+    return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
+
 # Input files
 TRAIN_FN = "train.txt"
 
@@ -55,10 +59,6 @@ Wout = tf.Variable(tf.random_normal([prev_layer_dim, OUTPUT_DIM]))
 bout = tf.Variable(tf.random_normal([OUTPUT_DIM]))
 
 # Computations.
-
-# Approximation of GELU.
-def gelu_fast(_x):
-    return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
 
 # Use a function to generate a y variable as a function of an x variable so that we can generate
 # multiple variable pairs (one for training, one for optimising, etc...).
