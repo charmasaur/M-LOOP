@@ -133,17 +133,22 @@ def train_once():
 def train(epochs=1, plot=False):
     losses = []
     best_loss = -1
-    for i in range(epochs):
-        this_loss = train_once()
-        best_loss = min(this_loss, best_loss) if best_loss >= 0 else this_loss
-        losses.append(math.log(1+this_loss))
-    print("Epochs done, training until log loss is better than %f" % (math.log(1+best_loss)))
+    #for i in range(epochs):
+    try:
+        while True:
+            this_loss = train_once()
+            best_loss = min(this_loss, best_loss) if best_loss >= 0 else this_loss
+            losses.append(math.log(1+this_loss))
+    except KeyboardInterrupt:
+        pass
+
+    #print("Epochs done, training until log loss is better than %f" % (math.log(1+best_loss)))
     # Keep training until the loss gets better
-    while True:
-        this_loss = train_once()
-        losses.append(math.log(1+this_loss))
-        if this_loss < best_loss:
-            break
+    #while True:
+    #    this_loss = train_once()
+    #    losses.append(math.log(1+this_loss))
+    #    if this_loss < best_loss:
+    #        break
     if plot:
         plt.plot(losses)
         plt.show()
