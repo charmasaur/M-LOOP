@@ -267,12 +267,12 @@ def plotgrad():
 # Add a point to the training set.
 def add_train(nx, ny):
     train_x.append(nx)
-    train_y.append([ny])
+    train_y.append(ny)
 
 # Get the next data point and add it to the training set.
 def next_point():
     global next_data_index
-    add_train(data_x[next_data_index], data_y[next_data_index][0])
+    add_train(data_x[next_data_index], data_y[next_data_index])
     next_data_index = next_data_index + 1
 
 # Add training examples one at a time, training after each one.
