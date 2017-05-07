@@ -24,6 +24,7 @@ TRAIN_EPOCHS_PER_POINT = 1000
 TRAIN_KEEP_PROB = 0.9
 TRAIN_REG_CO = 0#0.001
 TRAINER = tf.train.AdamOptimizer()
+INITIAL_STD = 1.
 
 # Optimisation
 OPTIMISE_EPOCHS = 100
@@ -54,12 +55,12 @@ bs = []
 
 prev_layer_dim = INPUT_DIM
 for dim in HIDDEN_LAYER_DIMS:
-  Ws.append(tf.Variable(tf.random_normal([prev_layer_dim, dim])))
-  bs.append(tf.Variable(tf.random_normal([dim])))
+  Ws.append(tf.Variable(tf.random_normal([prev_layer_dim, dim], stddev=INITIAL_STD)))
+  bs.append(tf.Variable(tf.random_normal([dim], stddev=INITIAL_STD)))
   prev_layer_dim = dim
 
-Wout = tf.Variable(tf.random_normal([prev_layer_dim, OUTPUT_DIM]))
-bout = tf.Variable(tf.random_normal([OUTPUT_DIM]))
+Wout = tf.Variable(tf.random_normal([prev_layer_dim, OUTPUT_DIM], stddev=INITIAL_STD))
+bout = tf.Variable(tf.random_normal([OUTPUT_DIM], stddev=INITIAL_STD))
 
 # Computations.
 
