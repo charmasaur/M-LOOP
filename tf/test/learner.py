@@ -19,7 +19,7 @@ ACTS = [gelu_fast] * 5
 OUTPUT_DIM = 1
 
 # Training
-BATCH_SIZE = 1
+BATCH_SIZE = 100
 TRAIN_KEEP_PROB = 0.8
 TRAIN_REG_CO = 0#.001
 TRAINER = tf.train.AdamOptimizer()
