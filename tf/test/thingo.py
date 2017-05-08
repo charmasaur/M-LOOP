@@ -266,8 +266,8 @@ def plotgrad():
 
 # Add a point to the training set.
 def add_train(nx, ny):
-    train_x.append(nx)
-    train_y.append(ny)
+    train_x.append([nx])
+    train_y.append([ny])
 
 # Get the next data point and add it to the training set.
 def next_point():
