@@ -242,10 +242,19 @@ def explore_random():
 def explore_min():
     add_x(best_x[0])
 
-def rep(f, n):
-    for _ in range(n):
-        f()
+# Convenience functions
+def p():
+    plot()
+    plt.show()
+
+def a():
+    optimise()
+    explore_min()
+
+def t():
+    train()
 
 reset()
-rep(explore_random, 20)
+for _ in range(20):
+    explore_random()
 optimise()
