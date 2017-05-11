@@ -16,18 +16,16 @@ def eval_y(x):
 
 # Network architecture
 INPUT_DIM = 1
-HIDDEN_LAYER_DIMS = [32] * 5
-ACTS = [gelu_fast] * 5
+HIDDEN_LAYER_DIMS = [32] * 1
+ACTS = [tf.nn.relu] * 1
 OUTPUT_DIM = 1
 
 # Training
-BATCH_SIZE = 100
+BATCH_SIZE = 3
 TRAIN_REG_CO = 0#.001
+TRAIN_SAMPLING_CO = 0.01#.001
 TRAINER = tf.train.AdamOptimizer()
-INITIAL_STD = 0.1
-RAN_SCALE = 0
-
-LCB_REPS = 50
+INITIAL_STD = 1
 
 # TensorFlow setup.
 print("Setting up TF")
@@ -35,17 +33,32 @@ print("Setting up TF")
 x = tf.placeholder(tf.float32, shape=[None, INPUT_DIM])
 y_ = tf.placeholder(tf.float32, shape=[None, OUTPUT_DIM])
 reg_co = tf.placeholder_with_default(0., shape=[])
-y_ran = tf.placeholder_with_default(1., shape=[])
-y_offset = tf.placeholder_with_default(0., shape=[])
+sampling_co = tf.placeholder_with_default(0., shape=[])
 
 class DistVar():
     def __init__(self, shape):
+        self.shape = shape
+
         self.mu = tf.Variable(tf.random_normal(shape, stddev=INITIAL_STD))
         self.rho = tf.Variable(tf.random_normal(shape, stddev=INITIAL_STD))
-        self.eps = tf.placeholder(tf.float32, shape=shape)
+        self.eps = tf.placeholder_with_default(tf.zeros(shape=shape), shape=shape)
 
+    def _sigma(self):
+        return tf.log(1 + tf.exp(self.rho))
+
+    # Returns the value of this variable.
     def op(self):
-        return self.mu + tf.multiply(tf.log(1 + tf.exp(self.rho)), self.eps)
+        return self.mu + tf.mul(self._sigma(), self.eps)
+
+    # Returns the log probability of this variable.
+    def lp(self):
+        # 2.5 ~= 2pi
+        return -tf.reduce_sum(tf.log(2.5 * self._sigma()) + tf.square(self.eps))
+
+    # Fills the given feed dictionary to sample this variable.
+    def fill_eps(self, d):
+        d[self.eps] = np.random.normal(size=self.shape)
+        return d
 
 # Variables.
 Ws = []
@@ -55,9 +68,16 @@ prev_layer_dim = INPUT_DIM
 for dim in HIDDEN_LAYER_DIMS:
   Ws.append(DistVar([prev_layer_dim, dim]))
   bs.append(DistVar([dim]))
+  prev_layer_dim = dim
 
 Wout = DistVar([prev_layer_dim, OUTPUT_DIM])
 bout = DistVar([OUTPUT_DIM])
+
+def fill_eps(d, fill=True):
+    if fill:
+        for v in Ws + bs + [Wout, bout]:
+            v.fill_eps(d)
+    return d
 
 # Computations.
 
@@ -71,13 +91,23 @@ def get_y(x_var):
 
 y = get_y(x)
 
-# TODO: Dunno if this will end up working...
-
 # Training.
 loss_func = (
-        (tf.reduce_mean(tf.reduce_sum(tf.square(y - y_), reduction_indices=[1]))
-        + reg_co * tf.reduce_mean([tf.nn.l2_loss(W) for W in Ws + [Wout]]))
-        * (1 + RAN_SCALE * (y_offset - tf.reduce_max(y_)) * y_ran))
+        # Loss, or -log-likelihood of these weights (given data): -log P(D|w)
+        # Obviously we want this to be small, since we want a high likelihood.
+        tf.reduce_mean(tf.reduce_sum(tf.square(y - y_), reduction_indices=[1]))
+
+        # Regularization, or -log of prior for these weights: -log P(w)
+        # Also want this to be small, since we want a high prior.
+        + reg_co * tf.reduce_mean([tf.nn.l2_loss(W.op()) for W in Ws + [Wout]])
+
+        # Log probability of this sampling: log(q(w|theta))
+        # Want this to be large, so that we're looking at probable samplings.
+        + sampling_co * tf.reduce_mean([v.lp() for v in Ws + bs + [Wout] + [bout]])
+
+        # Note that this loss can be negative, because we've dropped the constants
+        # associated with the first two terms.
+        )
 train_step = TRAINER.minimize(loss_func)
 
 # Gradient with respect to x.
@@ -96,16 +126,11 @@ def reset():
     train_y = []
     session.run(tf.initialize_all_variables())
 
-def get_ran():
-    diff = max([t[0] for t in train_y]) - min([t[0] for t in train_y])
-    if diff > 0:
-        return 1/diff
-    return 0
-
 def loss(xs, ys, reg=True):
-    return session.run(loss_func, feed_dict={x: xs, y_: ys, reg_co: TRAIN_REG_CO if reg else 0,
-        y_ran: get_ran(),
-        y_offset: max([t[0] for t in train_y])
+    return session.run(loss_func, feed_dict={x: xs,
+        y_: ys,
+        reg_co: TRAIN_REG_CO if reg else 0,
+        sampling_co: TRAIN_SAMPLING_CO,
         })
 
 def train_once():
@@ -114,13 +139,16 @@ def train_once():
         batch_indices = all_indices[j * BATCH_SIZE : (j + 1) * BATCH_SIZE]
         batch_x = [train_x[index] for index in batch_indices]
         batch_y = [train_y[index] for index in batch_indices]
-        session.run(train_step, feed_dict={x: batch_x, y_: batch_y,
+        session.run(train_step, feed_dict=fill_eps({
+            x: batch_x,
+            y_: batch_y,
             reg_co: TRAIN_REG_CO,
-            y_ran: get_ran(),
-            y_offset: max([t[0] for t in train_y])
-            })
+            sampling_co: TRAIN_SAMPLING_CO,
+            },
+            fill=True))
     this_loss = loss(train_x, train_y)
-    print("Log loss %f (unreg %f)" % (math.log(1+this_loss), math.log(1+loss(train_x, train_y, reg=False))))
+    #print("Log loss %f (unreg %f)" % (math.log(1+this_loss), math.log(1+loss(train_x, train_y, reg=False))))
+    print("Loss %f (unreg %f)" % (this_loss, loss(train_x, train_y, reg=False)))
     return this_loss
 
 def train(epochs=None, plot=False):
@@ -129,7 +157,7 @@ def train(epochs=None, plot=False):
         counter = 0
         while epochs == None or counter < epochs:
             this_loss = train_once()
-            losses.append(math.log(1+this_loss))
+            losses.append(this_loss)
             counter += 1
     except KeyboardInterrupt:
         pass
@@ -161,20 +189,18 @@ def _get_xrange():
     max_plot_x = _mid_train_x + _wid_train_x * 0.75
     return [[x] for x in np.linspace(min_plot_x, max_plot_x, 1000)]
 
-def plot():
+def plot(num_rand=1):
     predicted_x = _get_xrange()
-    #ydist = _get_ys_dist(predicted_x)
-    ylcb = _get_ys_lcb(predicted_x)
     predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
     plt.clf()
-    #for (i,ys) in enumerate(ydist):
-    #    plt.scatter(predicted_x, ys, c=[i]*len(ys), vmin=0, vmax=len(ydist), cmap=plt.get_cmap("viridis"))
     plt.plot(predicted_x, predicted_y, color='r')
-    plt.plot(predicted_x, ylcb[1], color='b')
-    plt.plot(predicted_x, ylcb[0], color='g')
+    for _ in range(num_rand):
+        yran = [r[0] for r in session.run(y, feed_dict=fill_eps({x: predicted_x}))]
+        plt.plot(predicted_x, yran, color='b')
     plt.scatter(train_x, train_y)
     plt.scatter(best_x, eval_y(best_x), color='r', marker='x')
     plt.draw()
+
     #if OUTPUT_DIM > 1:
     #    print("Can't plot with output dim > 1")
     #    return
