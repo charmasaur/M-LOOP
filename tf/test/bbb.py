@@ -46,11 +46,11 @@ class DistVar():
     def _sigma(self):
         return tf.log(1 + tf.exp(self.rho))
 
-    # Returns the value of this variable.
+    # Returns the value of this variable under the current sampling.
     def op(self):
         return self.mu + tf.mul(self._sigma(), self.eps)
 
-    # Returns the log probability of this variable.
+    # Returns the log probability of the current sampling.
     def lp(self):
         # 2.5 ~= 2pi
         return -tf.reduce_sum(tf.log(2.5 * self._sigma()) + tf.square(self.eps))
