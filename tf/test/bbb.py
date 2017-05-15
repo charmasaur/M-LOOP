@@ -102,7 +102,8 @@ loss_func = (
         + reg_co * tf.reduce_mean([tf.nn.l2_loss(W.op()) for W in Ws + [Wout]])
 
         # Log probability of this sampling: log(q(w|theta))
-        # Want this to be large, so that we're looking at probable samplings.
+        # Want this to be small, so that for given values of the above two losses it's worse if this
+        # is a likely sampling. Alternatively, this can be seen as a way to encourage exploration.
         + sampling_co * tf.reduce_mean([v.lp() for v in Ws + bs + [Wout] + [bout]])
 
         # Note that this loss can be negative, because we've dropped the constants
