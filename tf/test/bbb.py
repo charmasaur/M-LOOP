@@ -36,15 +36,14 @@ reg_co = tf.placeholder_with_default(0., shape=[])
 sampling_co = tf.placeholder_with_default(0., shape=[])
 
 class DistVar():
-    def __init__(self, shape):
-        self.shape = shape
-
-        self.mu = tf.Variable(tf.random_normal(shape, stddev=INITIAL_STD))
-        self.rho = tf.Variable(tf.random_normal(shape, stddev=INITIAL_STD))
-        self.eps = tf.placeholder_with_default(tf.zeros(shape=shape), shape=shape)
+    def __init__(self, eps):
+        self.mu = tf.Variable(tf.random_normal(eps.get_shape(), stddev=INITIAL_STD))
+        self.rho = tf.Variable(tf.random_normal(eps.get_shape(), stddev=INITIAL_STD))
+        self.eps = eps
 
     def _sigma(self):
-        return tf.log(1 + tf.exp(self.rho))
+        # TODO: This used to be tf.log(1 + tf.exp(self.rho)). Does this break anything?
+        return self.rho
 
     # Returns the value of this variable under the current sampling.
     def op(self):
@@ -53,30 +52,51 @@ class DistVar():
     # Returns the log probability of the current sampling.
     def lp(self):
         # 2.5 ~= sqrt(2pi)
-        return -tf.reduce_sum(tf.log(2.5 * self._sigma()) + tf.square(self.eps))
+        return -tf.reduce_sum(tf.log(2.5 * tf.abs(self._sigma())) + tf.square(self.eps))
 
-    # Fills the given feed dictionary to sample this variable.
+class EpsManager():
+    def __init__(self):
+        self.eps = []
+
+    def make_eps(self, shape):
+        eps = tf.placeholder_with_default(tf.zeros(shape=shape), shape=shape)
+        self.eps.append(eps)
+        return eps
+
     def fill_eps(self, d):
-        d[self.eps] = np.random.normal(size=self.shape)
-        return d
+        for e in self.eps:
+            d[e] = np.random.normal(size=e.get_shape().as_list())
+
+eps_manager = EpsManager()
+
+def single_var(shape):
+    return DistVar(eps_manager.make_eps(shape))
+
+def double_var(shape):
+    eps = eps_manager.make_eps(shape)
+    return DistVar(eps), DistVar(eps)
 
 # Variables.
 Ws = []
 bs = []
+b2s = []
+b3s = []
 
 prev_layer_dim = INPUT_DIM
 for dim in HIDDEN_LAYER_DIMS:
-  Ws.append(DistVar([prev_layer_dim, dim]))
-  bs.append(DistVar([dim]))
+  Ws.append(single_var([prev_layer_dim, dim]))
+  f, s = double_var([dim])
+  bs.append(f)
+  b2s.append(s)
+  b3s.append(single_var([dim]))
   prev_layer_dim = dim
 
-Wout = DistVar([prev_layer_dim, OUTPUT_DIM])
-bout = DistVar([OUTPUT_DIM])
+Wout = single_var([prev_layer_dim, OUTPUT_DIM])
+bout = single_var([OUTPUT_DIM])
 
 def fill_eps(d, fill=True):
     if fill:
-        for v in Ws + bs + [Wout, bout]:
-            v.fill_eps(d)
+        eps_manager.fill_eps(d)
     return d
 
 # Computations.
@@ -85,8 +105,8 @@ def fill_eps(d, fill=True):
 # multiple variable pairs (one for training, one for optimising, etc...).
 def get_y(x_var):
   prev_h = x_var
-  for (W, b, act) in zip(Ws, bs, ACTS):
-    prev_h = act(tf.matmul(prev_h, W.op()) + b.op())
+  for (W, b, b2, b3, act) in zip(Ws, bs, b2s, b3s, ACTS):
+    prev_h = act(tf.matmul(prev_h, W.op()) + b.op() + b3.op()) + b2.op()
   return tf.matmul(prev_h, Wout.op()) + bout.op()
 
 y = get_y(x)
