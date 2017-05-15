@@ -23,7 +23,7 @@ OUTPUT_DIM = 1
 # Training
 BATCH_SIZE = 3
 TRAIN_REG_CO = 0#.001
-TRAIN_SAMPLING_CO = 0.01#.001
+TRAIN_SAMPLING_CO = 0.0001
 TRAINER = tf.train.AdamOptimizer()
 INITIAL_STD = 1
 
@@ -52,7 +52,7 @@ class DistVar():
 
     # Returns the log probability of the current sampling.
     def lp(self):
-        # 2.5 ~= 2pi
+        # 2.5 ~= sqrt(2pi)
         return -tf.reduce_sum(tf.log(2.5 * self._sigma()) + tf.square(self.eps))
 
     # Fills the given feed dictionary to sample this variable.
@@ -126,11 +126,11 @@ def reset():
     train_y = []
     session.run(tf.initialize_all_variables())
 
-def loss(xs, ys, reg=True):
+def loss(xs, ys, reg=True, sam=True):
     return session.run(loss_func, feed_dict={x: xs,
         y_: ys,
         reg_co: TRAIN_REG_CO if reg else 0,
-        sampling_co: TRAIN_SAMPLING_CO,
+        sampling_co: TRAIN_SAMPLING_CO if sam else 0,
         })
 
 def train_once():
@@ -148,7 +148,10 @@ def train_once():
             fill=True))
     this_loss = loss(train_x, train_y)
     #print("Log loss %f (unreg %f)" % (math.log(1+this_loss), math.log(1+loss(train_x, train_y, reg=False))))
-    print("Loss %f (unreg %f)" % (this_loss, loss(train_x, train_y, reg=False)))
+    print("Loss %f (unreg %f) (raw %f)" % (
+        this_loss,
+        loss(train_x, train_y, reg=False),
+        loss(train_x, train_y, reg=False, sam=False)))
     return this_loss
 
 def train(epochs=None, plot=False):
@@ -254,8 +257,8 @@ def explore_min():
     add_x(best_x[0])
 
 # Convenience functions
-def p():
-    plot()
+def p(n=1):
+    plot(num_rand=n)
     plt.show()
 
 def a():
