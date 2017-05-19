@@ -14,6 +14,7 @@ batch_size = tf.placeholder(tf.int32, shape=()) # 2
 res = tf.Variable(tf.zeros([10, 5, 2, 2]))
 
 def epoch(i):
+    # TODO: Doesn't work if dims are different.
     dem = tf.transpose(tf.random_shuffle(tf.transpose([xs, ys])))
 
     def batch(j):
