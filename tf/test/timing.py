@@ -23,9 +23,9 @@ OUTPUT_DIM = 1
 BATCH_SIZE = 8
 TRAIN_SIZE = 8 * 10
 TRAIN_REG_CO = 0#.001
-TRAINER = tf.train.AdamOptimizer()
+TRAINER = tf.train.AdamOptimizer
 INITIAL_STD = 0.1
-EPOCHS = 1000
+EPOCHS = 100
 
 class Net():
     def __init__(self):
@@ -37,8 +37,6 @@ class Net():
             self.x = tf.placeholder(tf.float32, shape=[None, INPUT_DIM])
             self.y_ = tf.placeholder(tf.float32, shape=[None, OUTPUT_DIM])
             self.reg_co = tf.placeholder_with_default(0., shape=[])
-            self.epochs = tf.placeholder(tf.int32, shape=())
-            self.batch_size = tf.placeholder(tf.int32, shape=())
 
             # Variables.
             Ws = []
@@ -71,51 +69,26 @@ class Net():
                     tf.reduce_mean(tf.reduce_sum(tf.square(y_ - y), reduction_indices=[1]))
                     + self.reg_co * tf.reduce_mean([tf.nn.l2_loss(W) for W in Ws + [Wout]]))
             self.loss_func = get_loss(self.y_, self.y)
-            self.train_step = TRAINER.minimize(self.loss_func)
+            self.train_step = TRAINER().minimize(self.loss_func)
 
-            nbatches = tf.floordiv(tf.size(self.x), self.batch_size)
+            self.batch_size = BATCH_SIZE
+            nbatches = tf.to_int32(tf.ceil(
+                tf.to_float(tf.shape(self.x)[0]) / tf.to_float(self.batch_size)))
 
-            def epoch(i):
-                #indices = tf.range(0, tf.shape(self.x)[0])#tf.random_shuffle(tf.range(0, tf.shape(self.x)[0]))
-                demx = tf.random_shuffle(self.x, seed=1337)
-                demy = tf.random_shuffle(self.y_, seed=1337)
+            def batch(j):
+                length = tf.minimum(self.batch_size,
+                        tf.shape(self.x)[0] - j * self.batch_size)
+                xb = tf.slice(self.x, [j * self.batch_size, 0], [length, -1])
+                yb = tf.slice(self.y_, [j * self.batch_size, 0], [length, -1])
+                return TRAINER().minimize(get_loss(yb, get_y(xb)))
             
-                def batch(j):
-                    #return TRAINER.minimize(get_loss(tf.gather(self.y_, indices), get_y(tf.gather(self.x, indices))))
-                    #b = tf.slice(dem, [0,j * self.batch_size, 0], [2, self.batch_size, 1])
-                    #xb, yb = tf.unstack(b, num=2)
-                    xb = tf.slice(demx, [j * self.batch_size, 0], [self.batch_size, -1])
-                    yb = tf.slice(demy, [j * self.batch_size, 0], [self.batch_size, -1])
-                    return TRAINER.minimize(get_loss(yb, get_y(xb)))
-                    #X, Y = [tf.reduce_sum(xb), tf.reduce_sum(yb)]
-                    #r = tf.scatter_nd_update(res, [[i,j]], [[xb, yb]])
-                    #with tf.control_dependencies([r]):
-                    #    return tf.no_op()
-            
-                j = tf.constant(0)
-                epoch_op = tf.while_loop(
-                        lambda j: tf.less(j, nbatches),
-                        lambda j: tf.tuple([tf.add(j,1)], control_inputs=[batch(j)])[0],
-                        [j])
-                return epoch_op
-            
-            i = tf.constant(0)
-            self.train_many = tf.while_loop(
-                    lambda i: tf.less(i, self.epochs),
-                    lambda i: tf.tuple([tf.add(i,1)], control_inputs=[epoch(i)])[0],
-                    [i])
-
-            #xs_var = tf.Variable([0], dtype=tf.float32, validate_shape=False, trainable=False)
-            #ys_var = tf.Variable([0], dtype=tf.float32, validate_shape=False, trainable=False)
-            #
-            #self.assign = tf.tuple([tf.assign(xs_var, self.x, validate_shape=False),
-            #    tf.assign(ys_var, self.y_, validate_shape=False)])
-            #
-            #R = tf.train.slice_input_producer([xs_var, ys_var], num_epochs=EPOCHS)
-            #r = [tf.reshape(r, [1]) for r in R]
-            #self.bs = tf.train.batch(r, batch_size=BATCH_SIZE)
-            #
-            #self.train_many = TRAINER.minimize(get_loss(self.bs[1], get_y(self.bs[0])))
+            j = tf.constant(0)
+            self.epoch_op = tf.while_loop(
+                    lambda j: tf.less(j, nbatches),
+                    lambda j: tf.tuple([tf.add(j,1)], control_inputs=[batch(j)])[0],
+                    [j],
+                    back_prop=False,
+                    parallel_iterations=1)
 
             # Gradient with respect to x.
             self.dydx = tf.gradients(self.y, self.x)[0]
@@ -139,21 +112,6 @@ class Net():
             self.reg_co: TRAIN_REG_CO if reg else 0,
             })
 
-    def train_once(self):
-        all_indices = np.random.permutation(len(train_x))
-        for j in range(math.ceil(len(all_indices) / BATCH_SIZE)):
-            batch_indices = all_indices[j * BATCH_SIZE : (j + 1) * BATCH_SIZE]
-            batch_x = [train_x[index] for index in batch_indices]
-            batch_y = [train_y[index] for index in batch_indices]
-            self.session.run(self.train_step, feed_dict={
-                self.x: batch_x,
-                self.y_: batch_y,
-                self.reg_co: TRAIN_REG_CO,
-                })
-        #this_loss = self.loss(train_x, train_y)
-        #print("Log loss %f (unreg %f)" % (math.log(1+this_loss), math.log(1+self.loss(train_x, train_y, reg=False))))
-        return 0#this_loss
-
     def eval(self, xs):
         return self.session.run(self.y, feed_dict={self.x: xs})
 
@@ -163,37 +121,32 @@ class Net():
     def train(self, epochs=None, plot=False):
         losses = []
 
-        #self.session.run(self.assign, feed_dict={self.x: train_x, self.y_: train_y})
-        #threads = tf.train.start_queue_runners(sess=self.session, coord=self.coord)
-        #ct = 0
-        #try:
-        #    while not self.coord.should_stop():
-        #        ct = ct + 1
-        #        self.session.run(self.train_many)#, feed_dict={self.reg_co: TRAIN_REG_CO})
-        #        #print(self.session.run(self.bs))
-        #except tf.errors.OutOfRangeError:
-        #    print("Done")
-        #finally:
-        #    self.coord.request_stop()
-        #print(str(ct))
-        #self.coord.join(threads)
-            
-        #self.session.run(self.train_many, feed_dict={
-        #            self.x: train_x,
-        #            self.y_: train_y,
-        #            self.reg_co: TRAIN_REG_CO,
-        #            self.batch_size: BATCH_SIZE,
-        #            self.epochs: epochs
-        #            })
+        counter = 0
+        tx = np.array(train_x)
+        ty = np.array(train_y)
+        while counter < epochs:
+            all_indices = np.random.permutation(len(train_x))
 
-        try:
-            counter = 0
-            while epochs == None or counter < epochs:
-                this_loss = self.train_once()
-                losses.append(math.log(1+this_loss))
-                counter += 1
-        except KeyboardInterrupt:
-            pass
+            #for j in range(math.ceil(len(all_indices) / BATCH_SIZE)):
+            #    batch_indices = all_indices[j * BATCH_SIZE : (j + 1) * BATCH_SIZE]
+            #    batch_x = tx[batch_indices]
+            #    batch_y = ty[batch_indices]
+            #    self.session.run(self.train_step, feed_dict={
+            #        self.x: batch_x,
+            #        self.y_: batch_y,
+            #        self.reg_co: TRAIN_REG_CO,
+            #        })
+
+            state = np.random.get_state()
+            np.random.shuffle(tx)
+            np.random.set_state(state)
+            np.random.shuffle(ty)
+            self.session.run(self.epoch_op, feed_dict={
+                        self.x: tx,
+                        self.y_: ty,
+                        self.reg_co: TRAIN_REG_CO,
+                        })
+            counter += 1
 
         if plot:
             plt.plot(losses)
@@ -276,7 +229,11 @@ for _ in range(TRAIN_SIZE):
 startc = time.time()
 nets.append(Net())
 print("Constructed: " + str(time.time() - startc))
-start = time.time()
-nets[0].train(EPOCHS)
-print("Time: " + str(time.time() - start))
+rstart = time.time()
+for _ in range(10):
+    start = time.time()
+    nets[0].train(EPOCHS)
+    print(" Time: " + str(time.time() - start))
+print("Time: " + str(time.time() - rstart))
+
 print("Loss: " + str(nets[0].loss(train_x,train_y)))
