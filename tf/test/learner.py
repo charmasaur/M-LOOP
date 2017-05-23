@@ -44,11 +44,11 @@ bs = []
 
 prev_layer_dim = INPUT_DIM
 for dim in HIDDEN_LAYER_DIMS:
-  Ws.append(tf.Variable(tf.random_normal([prev_layer_dim, dim], stddev=INITIAL_STD)))
+  Ws.append(tf.Variable(tf.random_normal([prev_layer_dim, dim], stddev=1.4/np.sqrt(prev_layer_dim))))
   bs.append(tf.Variable(tf.random_normal([dim], stddev=INITIAL_STD)))
   prev_layer_dim = dim
 
-Wout = tf.Variable(tf.random_normal([prev_layer_dim, OUTPUT_DIM], stddev=INITIAL_STD))
+Wout = tf.Variable(tf.random_normal([prev_layer_dim, OUTPUT_DIM], stddev=1.4/np.sqrt(prev_layer_dim)))
 bout = tf.Variable(tf.random_normal([OUTPUT_DIM], stddev=INITIAL_STD))
 
 # Computations.
