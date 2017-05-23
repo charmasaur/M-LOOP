@@ -84,7 +84,7 @@ def reset():
     global train_x, train_y
     train_x = []
     train_y = []
-    session.run(tf.initialize_all_variables())
+    session.run(tf.global_variables_initializer())
 
 def get_ran():
     diff = max([t[0] for t in train_y]) - min([t[0] for t in train_y])
