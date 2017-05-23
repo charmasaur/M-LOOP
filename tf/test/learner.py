@@ -10,12 +10,12 @@ def gelu_fast(_x):
     return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
 
 def eval_y(x):
-    return (x-0.1)**2 + 0.2
+    return (x-0.1)**2 - 0.5
 
 # Network architecture
 INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [32] * 5
-ACTS = [tf.nn.relu] * 5
+ACTS = [gelu_fast] * 5
 OUTPUT_DIM = 1
 
 # Training
@@ -146,10 +146,11 @@ def optimise(plot=False):
     best_x = xopt
 
 def _get_xrange():
-    _mid_train_x = (max(train_x)[0] + min(train_x)[0]) / 2
-    _wid_train_x = max(train_x)[0] - min(train_x)[0]
-    min_plot_x = _mid_train_x - _wid_train_x * 0.75
-    max_plot_x = _mid_train_x + _wid_train_x * 0.75
+    #_mid_train_x = (max(train_x)[0] + min(train_x)[0]) / 2
+    #_wid_train_x = max(train_x)[0] - min(train_x)[0]
+    #min_plot_x = _mid_train_x - _wid_train_x * 0.75
+    #max_plot_x = _mid_train_x + _wid_train_x * 0.75
+    min_plot_x,max_plot_x = -5,5
     return [[x] for x in np.linspace(min_plot_x, max_plot_x, 10000)]
 
 def _get_ys_dist(xs):
@@ -259,3 +260,6 @@ reset()
 for _ in range(20):
     explore_random()
 optimise()
+p()
+train(100)
+p()
