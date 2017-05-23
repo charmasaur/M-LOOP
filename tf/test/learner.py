@@ -19,7 +19,7 @@ ACTS = [tf.nn.relu] * 5
 OUTPUT_DIM = 1
 
 # Training
-BATCH_SIZE = 100
+BATCH_SIZE = 16
 TRAIN_KEEP_PROB = 1#0.8
 TRAIN_REG_CO = 0#.001
 TRAINER = tf.train.AdamOptimizer()
