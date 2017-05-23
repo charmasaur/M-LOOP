@@ -103,7 +103,7 @@ def train_once():
     for j in range(math.ceil(len(all_indices) / BATCH_SIZE)):
         batch_indices = all_indices[j * BATCH_SIZE : (j + 1) * BATCH_SIZE]
         batch_x = [train_x[index] for index in batch_indices]
-        batch_y = np.log([train_y[index] for index in batch_indices])
+        batch_y = [train_y[index] for index in batch_indices]
         session.run(train_step, feed_dict={x: batch_x, y_: batch_y, keep_prob: TRAIN_KEEP_PROB,
             reg_co: TRAIN_REG_CO,
             y_ran: get_ran(),
@@ -155,7 +155,7 @@ def _get_xrange():
 def _get_ys_dist(xs):
     repeated_xs = xs * LCB_REPS
     print("Getting distribution results")
-    repeated_ys = np.exp(session.run(y, feed_dict={x: repeated_xs, keep_prob: TRAIN_KEEP_PROB}))
+    repeated_ys = session.run(y, feed_dict={x: repeated_xs, keep_prob: TRAIN_KEEP_PROB})
     print("Got distribution results")
     ys = [repeated_ys[i::len(xs)] for i in range(len(xs))]
     ys_actual = [[a[0] for a in y] for y in ys]
@@ -168,7 +168,7 @@ def _get_ys_dist(xs):
 def _get_ys_lcb(xs):
     repeated_xs = xs * LCB_REPS
     print("Getting distribution results")
-    repeated_ys = np.exp(session.run(y, feed_dict={x: repeated_xs, keep_prob: TRAIN_KEEP_PROB}))
+    repeated_ys = session.run(y, feed_dict={x: repeated_xs, keep_prob: TRAIN_KEEP_PROB})
     print("Got distribution results")
     ys = [repeated_ys[i::len(xs)] for i in range(len(xs))]
     ys_actual = [[a[0] for a in y] for y in ys]
@@ -181,7 +181,7 @@ def plot():
     predicted_x = _get_xrange()
     #ydist = _get_ys_dist(predicted_x)
     ylcb = _get_ys_lcb(predicted_x)
-    predicted_y = np.exp([r[0] for r in session.run(y, feed_dict={x: predicted_x})])
+    predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
     plt.clf()
     #for (i,ys) in enumerate(ydist):
     #    plt.scatter(predicted_x, ys, c=[i]*len(ys), vmin=0, vmax=len(ydist), cmap=plt.get_cmap("viridis"))
