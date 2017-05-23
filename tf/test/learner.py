@@ -10,7 +10,7 @@ def gelu_fast(_x):
     return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
 
 def eval_y(x):
-    return x**2
+    return (x-0.1)**2 + 0.2
 
 # Network architecture
 INPUT_DIM = 1
