@@ -10,19 +10,19 @@ def gelu_fast(_x):
     return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
 
 def eval_y(x):
-    return abs(x)
+    return (x-0.1)**2 - 0.5
 
 # Network architecture
 INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [32] * 5
-ACTS = [tf.nn.relu] * 5
+ACTS = [gelu_fast] * 5
 OUTPUT_DIM = 1
 
 # Training
 BATCH_SIZE = 100
 TRAIN_REG_CO = 0#.001
 TRAINER = tf.train.AdamOptimizer()
-INITIAL_STD = 0.1
+INITIAL_STD = 0.5
 
 class Net():
     def __init__(self):
@@ -40,11 +40,13 @@ class Net():
 
             prev_layer_dim = INPUT_DIM
             for dim in HIDDEN_LAYER_DIMS:
-              Ws.append(tf.Variable(tf.random_normal([prev_layer_dim, dim], stddev=INITIAL_STD)))
+              Ws.append(tf.Variable(tf.random_normal(
+                  [prev_layer_dim, dim], stddev=1.4/np.sqrt(prev_layer_dim))))
               bs.append(tf.Variable(tf.random_normal([dim], stddev=INITIAL_STD)))
               prev_layer_dim = dim
 
-            Wout = tf.Variable(tf.random_normal([prev_layer_dim, OUTPUT_DIM], stddev=INITIAL_STD))
+            Wout = tf.Variable(tf.random_normal(
+                [prev_layer_dim, OUTPUT_DIM], stddev=1.4/np.sqrt(prev_layer_dim)))
             bout = tf.Variable(tf.random_normal([OUTPUT_DIM], stddev=INITIAL_STD))
 
             # Computations.
