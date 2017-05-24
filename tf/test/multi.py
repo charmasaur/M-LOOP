@@ -76,6 +76,9 @@ class Net():
             self.init = tf.initialize_all_variables()
         self.reset()
 
+    def destroy(self):
+        self.session.close()
+
     def reset(self):
         self.session.run(self.init)
 
@@ -98,7 +101,7 @@ class Net():
                 self.reg_co: TRAIN_REG_CO,
                 })
         this_loss = self.loss(train_x, train_y)
-        print("Log loss %f (unreg %f)" % (math.log(1+this_loss), math.log(1+self.loss(train_x, train_y, reg=False))))
+        #print("Log loss %f (unreg %f)" % (math.log(1+this_loss), math.log(1+self.loss(train_x, train_y, reg=False))))
         return this_loss
 
     def eval(self, xs):
@@ -134,7 +137,7 @@ class Net():
         #xopt = opt.basinhopping(
         #        func=fun,
         #        x0=[0]).x
-        print("Maybe found maximum, f(%f) = %f" % (xopt, -fun(xopt)))
+        print("Maybe found maximum, f(%f) = %f" % (xopt, fun(xopt)))
         global best_x
         best_x = xopt
 
@@ -173,25 +176,32 @@ def plot(nets):
         predicted_y = [r[0] for r in n.eval(predicted_x)]
         plt.plot(predicted_x, predicted_y, color='b')
     plt.scatter(train_x, train_y)
-    plt.draw()
-
-# Convenience functions
-nets = []
-def p():
-    plot(nets)
+    plt.scatter([best_x], [eval_y(best_x)], marker='x', color='r')
     plt.show()
 
-def a():
-    raise ValueError
-    optimise()
-    explore_min()
+# Convenience functions
+def diff(net):
+    p = np.float(net.eval([best_x]))
+    a = np.float(eval_y(best_x))
+    r = np.abs((p-a)/a)
+    print("Pred: " + str(p) + ", act: " + str(a) + ", rat: " + str(r))
+    return r
 
-def t():
-    for n in nets:
-        n.train()
-
-def an():
-    nets.append(Net())
+def doit(p=True):
+    net = Net()
+    net.optimise()
+    if plot:
+        plot([net])
+    while True:
+        net.train(200)
+        net.optimise()
+        explore_min()
+        if p:
+            plot([net])
+        if diff(net) < 0.0001:
+            break
+    net.destroy()
+    print("Best: " + str(best_x) + ", fun: " + str(eval_y(best_x)))
 
 reset()
 for _ in range(20):
