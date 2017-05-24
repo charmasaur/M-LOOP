@@ -24,7 +24,6 @@ TRAIN_KEEP_PROB = 1#0.8
 TRAIN_REG_CO = 0#.001
 TRAINER = tf.train.AdamOptimizer()
 INITIAL_STD = 1.
-RAN_SCALE = 0
 
 LCB_REPS = 50
 
@@ -65,9 +64,8 @@ y = get_y(x)
 
 # Training.
 loss_func = (
-        (tf.reduce_mean(tf.reduce_sum(tf.square(y - y_), reduction_indices=[1]))
+        tf.reduce_mean(tf.reduce_sum(tf.square(y - y_), reduction_indices=[1]))
         + reg_co * tf.reduce_mean([tf.nn.l2_loss(W) for W in Ws + [Wout]]))
-        * (1 + RAN_SCALE * (y_offset - tf.reduce_max(y_)) * y_ran))
 train_step = TRAINER.minimize(loss_func)
 
 # Gradient with respect to x.
@@ -86,16 +84,8 @@ def reset():
     train_y = []
     session.run(tf.global_variables_initializer())
 
-def get_ran():
-    diff = max([t[0] for t in train_y]) - min([t[0] for t in train_y])
-    if diff > 0:
-        return 1/diff
-    return 0
-
 def loss(xs, ys, reg=True):
     return session.run(loss_func, feed_dict={x: xs, y_: ys, reg_co: TRAIN_REG_CO if reg else 0,
-        y_ran: get_ran(),
-        y_offset: max([t[0] for t in train_y])
         })
 
 def train_once():
@@ -106,8 +96,6 @@ def train_once():
         batch_y = [train_y[index] for index in batch_indices]
         session.run(train_step, feed_dict={x: batch_x, y_: batch_y, keep_prob: TRAIN_KEEP_PROB,
             reg_co: TRAIN_REG_CO,
-            y_ran: get_ran(),
-            y_offset: max([t[0] for t in train_y])
             })
     this_loss = loss(train_x, train_y)
     print("Log loss %f (unreg %f)" % (math.log(1+this_loss), math.log(1+loss(train_x, train_y, reg=False))))
