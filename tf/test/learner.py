@@ -20,7 +20,7 @@ OUTPUT_DIM = 1
 
 # Training
 BATCH_SIZE = 16
-TRAIN_KEEP_PROB = 1#0.8
+TRAIN_KEEP_PROB = 0.8
 TRAIN_REG_CO = 0#.001
 TRAINER = tf.train.AdamOptimizer()
 INITIAL_STD = 1.
@@ -248,6 +248,6 @@ reset()
 for _ in range(20):
     explore_random()
 optimise()
-p()
-train(100)
-p()
+#p()
+#train(100)
+#p()
