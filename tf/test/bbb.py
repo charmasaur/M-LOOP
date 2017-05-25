@@ -37,7 +37,7 @@ sampling_co = tf.placeholder_with_default(0., shape=[])
 
 class DistVar():
     def __init__(self, eps):
-        std = 1.4/tf.sqrt(tf.to_float(shape[0]))
+        std = 1.4/tf.sqrt(tf.to_float(eps.get_shape()[0]))
         self.mu = tf.Variable(tf.random_normal(eps.get_shape(), stddev=INITIAL_STD))
         self.rho = tf.Variable(tf.ones(eps.get_shape()) * DistVar._rho_from_sigma(std))
         self.eps = eps
