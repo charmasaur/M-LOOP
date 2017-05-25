@@ -17,13 +17,13 @@ def eval_y(x):
 # Network architecture
 INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [32] * 4
-ACTS = [gelu_fast] * 4
+ACTS = [tf.nn.relu] * 4
 OUTPUT_DIM = 1
 
 # Training
 BATCH_SIZE = 3
 TRAIN_REG_CO = 0#.001
-TRAIN_SAMPLING_CO = 0#.0001
+TRAIN_SAMPLING_CO = 0.0001
 TRAINER = tf.train.AdamOptimizer()
 INITIAL_STD = 1
 
@@ -140,17 +140,18 @@ def loss(xs, ys, reg=True, sam=True):
 
 def train_once():
     all_indices = np.random.permutation(len(train_x))
+    eps = fill_eps({})
     for j in range(math.ceil(len(all_indices) / BATCH_SIZE)):
         batch_indices = all_indices[j * BATCH_SIZE : (j + 1) * BATCH_SIZE]
         batch_x = [train_x[index] for index in batch_indices]
         batch_y = [train_y[index] for index in batch_indices]
-        session.run(train_step, feed_dict=fill_eps({
+        d = {
             x: batch_x,
             y_: batch_y,
             reg_co: TRAIN_REG_CO,
-            sampling_co: TRAIN_SAMPLING_CO,
-            },
-            fill=True))
+            sampling_co: TRAIN_SAMPLING_CO}
+        d.update(eps)
+        session.run(train_step, feed_dict=d)
     this_loss = loss(train_x, train_y)
     #print("Log loss %f (unreg %f)" % (math.log(1+this_loss), math.log(1+loss(train_x, train_y, reg=False))))
     print("Loss %f (unreg %f) (raw %f)" % (
@@ -255,7 +256,7 @@ def add_x(x):
 
 # Get the next data point and add it to the training set.
 def explore_random():
-    #x = np.random.uniform(-0.5,0.5)
+    #x = np.random.uniform(-1,1)
     #add_x(x + 0.5 if x>=0 else x - 0.5)
     add_x(np.random.uniform(-1,1))
 
