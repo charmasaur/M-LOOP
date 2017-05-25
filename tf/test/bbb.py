@@ -43,7 +43,7 @@ class DistVar():
         self.eps = eps
 
     def _rho_from_sigma(sigma):
-        return tf.log(tf.exp(sigma) - 1)
+        return sigma
 
     def _sigma(self):
         # TODO: This used to be tf.log(1 + tf.exp(self.rho)). Does this break anything?
