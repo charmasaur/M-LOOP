@@ -12,18 +12,18 @@ def gelu_fast(_x):
     return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
 
 def eval_y(x):
-    return abs(x)
+    return x**2
 
 # Network architecture
 INPUT_DIM = 1
-HIDDEN_LAYER_DIMS = [32] * 1
-ACTS = [tf.nn.relu] * 1
+HIDDEN_LAYER_DIMS = [32] * 4
+ACTS = [gelu_fast] * 4
 OUTPUT_DIM = 1
 
 # Training
 BATCH_SIZE = 3
 TRAIN_REG_CO = 0#.001
-TRAIN_SAMPLING_CO = 0.0001
+TRAIN_SAMPLING_CO = 0#.0001
 TRAINER = tf.train.AdamOptimizer()
 INITIAL_STD = 1
 
@@ -37,9 +37,13 @@ sampling_co = tf.placeholder_with_default(0., shape=[])
 
 class DistVar():
     def __init__(self, eps):
+        std = 1.4/tf.sqrt(tf.to_float(shape[0]))
         self.mu = tf.Variable(tf.random_normal(eps.get_shape(), stddev=INITIAL_STD))
-        self.rho = tf.Variable(tf.random_normal(eps.get_shape(), stddev=INITIAL_STD))
+        self.rho = tf.Variable(tf.ones(eps.get_shape()) * DistVar._rho_from_sigma(std))
         self.eps = eps
+
+    def _rho_from_sigma(sigma):
+        return tf.log(tf.exp(sigma) - 1)
 
     def _sigma(self):
         # TODO: This used to be tf.log(1 + tf.exp(self.rho)). Does this break anything?
@@ -271,8 +275,9 @@ def add_x(x):
 
 # Get the next data point and add it to the training set.
 def explore_random():
-    x = np.random.uniform(-0.5,0.5)
-    add_x(x + 0.5 if x>=0 else x - 0.5)
+    #x = np.random.uniform(-0.5,0.5)
+    #add_x(x + 0.5 if x>=0 else x - 0.5)
+    add_x(np.random.uniform(-1,1))
 
 def explore_min():
     add_x(best_x[0])
