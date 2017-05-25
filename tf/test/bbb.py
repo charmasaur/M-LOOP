@@ -149,7 +149,7 @@ def reset():
     global train_x, train_y
     train_x = []
     train_y = []
-    session.run(tf.initialize_all_variables())
+    session.run(tf.global_variables_initializer())
 
 def loss(xs, ys, reg=True, sam=True):
     return session.run(loss_func, feed_dict={x: xs,
