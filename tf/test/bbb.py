@@ -51,7 +51,7 @@ class DistVar():
 
     # Returns the value of this variable under the current sampling.
     def op(self):
-        return self.mu + tf.mul(self._sigma(), self.eps)
+        return self.mu + tf.multiply(self._sigma(), self.eps)
 
     # Returns the log probability of the current sampling.
     def lp(self):
