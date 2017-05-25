@@ -59,40 +59,36 @@ class DistVar():
         return -tf.reduce_sum(tf.log(2.5 * tf.abs(self._sigma())) + tf.square(self.eps))
 
 class EpsManager():
-    def __init__(self):
-        self.eps = []
+    def __init__(self, nbuckets):
+        self.buckets = [[] for _ in range(nbuckets)]
 
-    def make_eps(self, shape):
-        eps = tf.placeholder_with_default(tf.zeros(shape=shape), shape=shape)
-        self.eps.append(eps)
-        return eps
+    def get_eps(self, shape):
+        b = self.buckets[np.random.randint(len(self.buckets))]
+        for e in b:
+            if e.get_shape().as_list() == shape:
+                return e
+        e = tf.placeholder_with_default(tf.zeros(shape=shape), shape=shape)
+        b.append(e)
+        return e
 
     def fill_eps(self, d):
-        for e in self.eps:
-            d[e] = np.random.normal(size=e.get_shape().as_list())
+        for b in self.buckets:
+            for e in b:
+                d[e] = np.random.normal(size=e.get_shape().as_list())
 
-eps_manager = EpsManager()
+eps_manager = EpsManager(3)
 
 def single_var(shape):
-    return DistVar(eps_manager.make_eps(shape))
-
-def double_var(shape):
-    eps = eps_manager.make_eps(shape)
-    return DistVar(eps), DistVar(eps)
+    return DistVar(eps_manager.get_eps(shape))
 
 # Variables.
 Ws = []
 bs = []
-b2s = []
-b3s = []
 
 prev_layer_dim = INPUT_DIM
 for dim in HIDDEN_LAYER_DIMS:
   Ws.append(single_var([prev_layer_dim, dim]))
-  f, s = double_var([dim])
-  bs.append(f)
-  b2s.append(s)
-  b3s.append(single_var([dim]))
+  bs.append(single_var([dim]))
   prev_layer_dim = dim
 
 Wout = single_var([prev_layer_dim, OUTPUT_DIM])
@@ -109,8 +105,8 @@ def fill_eps(d, fill=True):
 # multiple variable pairs (one for training, one for optimising, etc...).
 def get_y(x_var):
   prev_h = x_var
-  for (W, b, b2, b3, act) in zip(Ws, bs, b2s, b3s, ACTS):
-    prev_h = act(tf.matmul(prev_h, W.op()) + b.op() + b3.op()) + b2.op()
+  for (W, b, act) in zip(Ws, bs, ACTS):
+    prev_h = act(tf.matmul(prev_h, W.op()) + b.op())
   return tf.matmul(prev_h, Wout.op()) + bout.op()
 
 y = get_y(x)
@@ -275,9 +271,9 @@ def add_x(x):
 
 # Get the next data point and add it to the training set.
 def explore_random():
-    #x = np.random.uniform(-0.5,0.5)
-    #add_x(x + 0.5 if x>=0 else x - 0.5)
-    add_x(np.random.uniform(-1,1))
+    x = np.random.uniform(-0.5,0.5)
+    add_x(x + 0.5 if x>=0 else x - 0.5)
+    #add_x(np.random.uniform(-1,1))
 
 def explore_min():
     add_x(best_x[0])
