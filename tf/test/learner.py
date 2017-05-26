@@ -15,7 +15,7 @@ def eval_y(x):
 # Network architecture
 INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [32] * 5
-ACTS = [gelu_fast] * 5
+ACTS = [tf.nn.relu] * 5
 OUTPUT_DIM = 1
 
 # Training
@@ -169,16 +169,16 @@ def _get_ys_lcb(xs):
 def plot():
     predicted_x = _get_xrange()
     #ydist = _get_ys_dist(predicted_x)
-    #ylcb = _get_ys_lcb(predicted_x)
+    ylcb = _get_ys_lcb(predicted_x)
     predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
     plt.clf()
     #for (i,ys) in enumerate(ydist):
     #    plt.scatter(predicted_x, ys, c=[i]*len(ys), vmin=0, vmax=len(ydist), cmap=plt.get_cmap("viridis"))
     plt.plot(predicted_x, predicted_y, color='r')
-    #plt.plot(predicted_x, ylcb[1], color='b')
-    #plt.plot(predicted_x, ylcb[0], color='g')
+    plt.plot(predicted_x, ylcb[1], color='b')
+    plt.plot(predicted_x, ylcb[0], color='g')
     plt.scatter(train_x, train_y)
-    plt.scatter(best_x, eval_y(best_x), color='r', marker='x')
+    #plt.scatter(best_x, eval_y(best_x), color='r', marker='x')
     plt.draw()
     #if OUTPUT_DIM > 1:
     #    print("Can't plot with output dim > 1")
@@ -235,7 +235,7 @@ def explore_min():
 # Convenience functions
 def p():
     plot()
-    plt.show()
+    plt.show(block=False)
 
 def a():
     optimise()
