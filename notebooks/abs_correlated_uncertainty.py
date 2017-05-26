@@ -17,7 +17,7 @@ r = np.vectorize(lambda x: x if x > 0. else 0.)
 # Plot a flattened abs, with the flat bottom at s.
 def plot_it(s):
     plt.plot(xs,r(xs-s)+r(-xs-s)+s)
-    
+
 # Sample the flat bottom from N(0.5,0.2). Note that the weighting given to the
 # randomness will determine the right standard deviation here. If we favour
 # randomness then we'll get a high-ish standard deviation, even if it means we
@@ -38,10 +38,3 @@ for _ in range(100):
     s = np.random.normal(0.,0.5)
     plot_it(s)
 plt.show()
-
-plt.plot(xs,abs(xs))
-for _ in range(100):
-    s = np.random.normal(0.,0.5)
-    plot_it(s)
-plt.show()
-
