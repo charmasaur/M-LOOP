@@ -15,7 +15,7 @@ def eval_y(x):
 # Network architecture
 INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [32] * 5
-ACTS = [tf.nn.relu] * 5
+ACTS = [gelu_fast] * 5
 OUTPUT_DIM = 1
 
 # Training
