@@ -1674,7 +1674,7 @@ class NeuralNetLearner(Learner, mp.Process):
                                   'predict_local_minima_at_end':self.predict_local_minima_at_end})
 
         #Remove logger so neural net can be safely picked for multiprocessing on Windows
-        self.log = None
+        #self.log = None
 
     def _construct_net(self):
         self.neural_net = [mlnn.NeuralNet(self.num_params) for _ in range(self.num_nets)]
@@ -1831,6 +1831,15 @@ class NeuralNetLearner(Learner, mp.Process):
             new_costs.append(cost)
             new_uncers.append(uncer)
 
+            for i,v in enumerate(self.latest_params_and_costs):
+                if v is None:
+                    continue
+                p,c = v
+                if np.sum(np.square(p-param)) < self.search_precision/100.:
+                    # These were the best params predicted by this net. If the costs agree to
+                    # within 5% then mark this net as dirty.
+                    if np.square(c-cost) / (np.square(cost)+1.) < 0.05:
+                        self.dirty[i] = True
 
         if self.all_params.size==0:
             self.all_params = np.array(new_params, dtype=float)
@@ -1931,7 +1940,7 @@ class NeuralNetLearner(Learner, mp.Process):
         self.neural_net[net_index].stop_opt()
         self.log.debug("Suggesting params " + str(next_params) + " with predicted cost: "
                 + str(next_cost))
-        return next_params
+        return (next_cost, next_params)
 
     def run(self):
         '''
@@ -1939,7 +1948,7 @@ class NeuralNetLearner(Learner, mp.Process):
         '''
         #logging to the main log file from a process (as apposed to a thread) in cpython is currently buggy on windows and/or python 2.7
         #current solution is to only log to the console for warning and above from a process
-        self.log = mp.log_to_stderr(logging.WARNING)
+        #self.log = mp.log_to_stderr(logging.WARNING)
 
         # The network needs to be created in the same process in which it runs
         self.create_neural_net()
@@ -1947,6 +1956,9 @@ class NeuralNetLearner(Learner, mp.Process):
         # We cycle through our different nets to generate each new set of params. This keeps track
         # of the current net.
         net_index = 0
+
+        self.dirty = [False] * self.num_nets
+        self.latest_params_and_costs = [None] * self.num_nets
 
         try:
             while not self.end_event.is_set():
@@ -1967,11 +1979,20 @@ class NeuralNetLearner(Learner, mp.Process):
                 num_nets_trained = 0
                 for _ in range(self.generation_num):
                     if num_nets_trained < self.num_nets:
+                        if self.dirty[net_index]:
+                            self.log.debug("Net #" + str(net_index) + " dirty, resetting")
+                            self.neural_net[net_index].destroy()
+                            self.neural_net[net_index] = mlnn.NeuralNet(self.num_params)
+                            self.neural_net[net_index].init()
+                            self.dirty[net_index] = False
                         self._fit_neural_net(net_index)
                         num_nets_trained += 1
 
                     self.log.debug('Neural network learner generating parameter:'+ str(self.params_count+1))
-                    next_params = self.find_next_parameters(net_index)
+                    next_cost, next_params = self.find_next_parameters(net_index)
+
+                    self.latest_params_and_costs[net_index] = next_params, next_cost
+
                     net_index = (net_index + 1) % self.num_nets
                     self.params_out_queue.put(next_params)
                     if self.end_event.is_set():
