@@ -10,7 +10,15 @@ variance is proportional to the square of the function value (vaguely).
 
 In this notebook we see whether this effect is present at the last layer of the "woah" dataset.
 We find that there doesn't seem to be a spaz subnet effect in the last layer, but there probably
-is the effect somewhere else.
+is the effect somewhere else (as evidenced by the fact that the total net has non-dropout
+variance).
+
+Update: we can actually get the end result (additional, non-dropout, variance) without quite this
+spaz subnet effect. In particular, the spaz subnets can also contribute to the data, they key is
+just that they need to contribute in the same way as the good nets (that is, each contributes a
+portion of ~1/n, where n is the number of contributors). But the fact remains that there is a small
+number of spaz subnets that are small on the data and large elsewhere, and that these can cause
+high non-dropout variance.
 
 To run, open up IPython and run learner.py, then run this, then run do_regular and do_dllo as you
 please.
