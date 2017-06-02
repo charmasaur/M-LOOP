@@ -123,7 +123,9 @@ plt.title("Dropout version")
 plt.show()
 
 # But we can also have the spaz subnets non-zero on the data -- instead they can
-# contribute just like the regular ones.
+# contribute just like the regular ones. The important bit is that we have a small
+# number of major contributors to the high-variance region, and a large number of
+# small contributors to the low-variance region.
 num_fitter_subnets = 1000
 num_junk_subnets = 20
 plt.plot(xs,abs(xs))
