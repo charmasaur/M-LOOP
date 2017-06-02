@@ -21,7 +21,7 @@ OUTPUT_DIM = 1
 # Training
 BATCH_SIZE = 16
 TRAIN_KEEP_PROB = 0.8
-TRAIN_REG_CO = 0#.001
+TRAIN_REG_CO = .001
 TRAINER = tf.train.AdamOptimizer()
 INITIAL_STD = 1.
 
