@@ -121,3 +121,21 @@ for _ in range(100):
     plt.plot(xs, sum([v * subnet(xs) for v, subnet in zip(vs, subnets)]))
 plt.title("Dropout version")
 plt.show()
+
+# But we can also have the spaz subnets non-zero on the data -- instead they can
+# contribute just like the regular ones.
+num_fitter_subnets = 1000
+num_junk_subnets = 20
+plt.plot(xs,abs(xs))
+for _ in range(100):
+    ss = np.linspace(-1,1,num_junk_subnets)
+    num_subnets = num_fitter_subnets + num_junk_subnets
+    subnets = ([lambda x: fitter(x) / num_subnets] * num_fitter_subnets
+            + [lambda x,s=s: junk(s,x) / num_junk_subnets + fitter(x) / num_subnets
+                    for s in ss])
+
+    p = 0.5
+    vs = np.random.binomial(1, p, num_subnets) / p
+    plt.plot(xs, sum([v * subnet(xs) for v, subnet in zip(vs, subnets)]))
+plt.title("Dropout version with semi-spaz subnets")
+plt.show()
