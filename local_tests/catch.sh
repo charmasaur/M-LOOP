@@ -1,1 +1,1 @@
-for i in `seq 1 16`; do echo $i; python MLOOPQuickTest.py >> 1_1.dat; done
+for i in `seq 1 30`; do echo $i; python MLOOPQuickTest.py >> 6_3.dat; done
