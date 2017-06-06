@@ -29,7 +29,7 @@ def main():
     tmin_boundary=[-10.] * tnum_params
     tmax_boundary=[ 10.] * tnum_params
     
-    tmax_num_runs = 200
+    tmax_num_runs = 100
     tcost = -1.
     
     log.info("Making landscape")

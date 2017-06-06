@@ -150,7 +150,7 @@ class SingleNeuralNet():
             loss_reg = (self.regularisation_coefficient_placeholder
                 * tf.reduce_mean([tf.nn.l2_loss(W.op()) for W in self.weights]))
 
-            loss_sample = 1e-4 * tf.reduce_mean([v.lp() for v in self.weights + self.biases])
+            loss_sample = 1e-5 * tf.reduce_mean([v.lp() for v in self.weights + self.biases])
 
             ## Define tensors for evaluating the loss on the full input
             self.loss_raw = get_loss_raw(self.output_placeholder, self.output_var)
