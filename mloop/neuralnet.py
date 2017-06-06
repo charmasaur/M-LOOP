@@ -10,6 +10,35 @@ import numpy.random as nr
 import sklearn.preprocessing as skp
 import tensorflow as tf
 
+class DistVar():
+    def __init__(self, shape):
+        self.shape = shape
+
+        std = 1.4/tf.sqrt(tf.to_float(shape[0]))
+        self.mu = tf.Variable(tf.random_normal(shape, stddev=std))
+        self.rho = tf.Variable(tf.ones(shape) * DistVar._rho_from_sigma(std))
+        self.eps = tf.placeholder_with_default(tf.zeros(shape=shape), shape=shape)
+
+    def _rho_from_sigma(sigma):
+        return tf.log(tf.exp(sigma) - 1)
+
+    def _sigma(self):
+        return tf.log(1 + tf.exp(self.rho))
+
+    # Returns the value of this variable under the current sampling.
+    def op(self):
+        return self.mu + tf.multiply(self._sigma(), self.eps)
+
+    # Returns the log probability of the current sampling.
+    def lp(self):
+        # 2.5 ~= sqrt(2pi)
+        return -tf.reduce_sum(tf.log(2.5 * self._sigma()) + tf.square(self.eps))
+
+    # Fills the given feed dictionary to sample this variable.
+    def fill_eps(self, d):
+        d[self.eps] = np.random.normal(size=self.shape)
+        return d
+
 class SingleNeuralNet():
     '''
     A single neural network with fixed hyperparameters/topology.
@@ -81,37 +110,29 @@ class SingleNeuralNet():
 
             ## Initialise the network
 
-            weights = []
-            biases = []
+            self.weights = []
+            self.biases = []
 
             # Input + internal nodes
             prev_layer_dim = self.num_params
             bias_stddev=0.5
             for (i, dim) in enumerate(layer_dims):
-                weights.append(tf.Variable(
-                    tf.random_normal([prev_layer_dim, dim], stddev=1.4/np.sqrt(prev_layer_dim)),
-                    name="weight_"+str(i)))
-                biases.append(tf.Variable(
-                    tf.random_normal([dim], stddev=bias_stddev),
-                    name="bias_"+str(i)))
+                self.weights.append(DistVar([prev_layer_dim, dim]))
+                self.biases.append(DistVar([dim]))
                 prev_layer_dim = dim
 
             # Output node
-            weights.append(tf.Variable(
-                tf.random_normal([prev_layer_dim, 1], stddev=1.4/np.sqrt(prev_layer_dim)),
-                name="weight_out"))
-            biases.append(tf.Variable(
-                tf.random_normal([1], stddev=bias_stddev),
-                name="bias_out"))
+            self.weights.append(DistVar([prev_layer_dim, 1]))
+            self.biases.append(DistVar([1]))
 
             # Get the output var given an input var
             def get_output_var(input_var):
                 prev_h = input_var
-                for w, b, act in zip(weights[:-1], biases[:-1], layer_activations):
+                for w, b, act in zip(self.weights[:-1], self.biases[:-1], layer_activations):
                     prev_h = tf.nn.dropout(
-                          act(tf.matmul(prev_h, w) + b),
+                          act(tf.matmul(prev_h, w.op()) + b.op()),
                           keep_prob=self.keep_prob_placeholder)
-                return tf.matmul(prev_h, weights[-1]) + biases[-1]
+                return tf.matmul(prev_h, self.weights[-1].op()) + self.biases[-1].op()
 
             ## Define tensors for evaluating the output var and gradient on the full input
             self.output_var = get_output_var(self.input_placeholder)
@@ -127,11 +148,13 @@ class SingleNeuralNet():
 
             # Regularisation component of the loss.
             loss_reg = (self.regularisation_coefficient_placeholder
-                * tf.reduce_mean([tf.nn.l2_loss(W) for W in weights]))
+                * tf.reduce_mean([tf.nn.l2_loss(W.op()) for W in self.weights]))
+
+            loss_sample = 1e-4 * tf.reduce_mean([v.lp() for v in self.weights + self.biases])
 
             ## Define tensors for evaluating the loss on the full input
             self.loss_raw = get_loss_raw(self.output_placeholder, self.output_var)
-            self.loss_total = self.loss_raw + loss_reg
+            self.loss_total = self.loss_raw + loss_reg + loss_sample
 
             ## Training
             self.train_step = tf.train.AdamOptimizer().minimize(self.loss_total)
@@ -141,6 +164,7 @@ class SingleNeuralNet():
 
             # Saver for saving and restoring params
             self.saver = tf.train.Saver(write_version=tf.train.SaverDef.V2)
+        self.cur_eps = None
         self.log.debug("Finished constructing net in: " + str(time.time() - start))
 
     def destroy(self):
@@ -178,6 +202,11 @@ class SingleNeuralNet():
                        self.regularisation_coefficient_placeholder: self.regularisation_coefficient,
                        })
 
+    def _fill_eps(self, d):
+        for v in self.weights + self.biases:
+            v.fill_eps(d)
+        return d
+
     def fit(self, params, costs, epochs):
         '''
         Fit the neural net to the provided data
@@ -211,18 +240,20 @@ class SingleNeuralNet():
             tot = 0
             run_start = time.time()
             for i in range(epochs):
+                eps = self._fill_eps({})
                 # Split the data into random batches, and train on each batch
                 indices = np.random.permutation(len(params))
                 for j in range(int(math.ceil(len(params) / self.batch_size))):
                     batch_indices = indices[j * self.batch_size : (j + 1) * self.batch_size]
                     batch_input = lparams[batch_indices]
                     batch_output = lcosts[batch_indices]
-                    self.tf_session.run(self.train_step,
-                                        feed_dict={self.input_placeholder: batch_input,
+                    d = {self.input_placeholder: batch_input,
                                                    self.output_placeholder: batch_output,
                                                    self.regularisation_coefficient_placeholder: self.regularisation_coefficient,
                                                    self.keep_prob_placeholder: self.keep_prob,
-                                                   })
+                                                   }
+                    d.update(eps)
+                    self.tf_session.run(self.train_step, feed_dict=d)
                 if i % 10 == 0:
                     (l, ul) = self._loss(params, costs)
                     self.losses_list.append(l)
@@ -250,6 +281,12 @@ class SingleNeuralNet():
                                   self.output_placeholder: [[c] for c in costs],
                                   })
 
+    def start_opt(self):
+        self.cur_eps = self._fill_eps({})
+
+    def stop_opt(self):
+        self.cur_eps = None
+
     def predict_cost(self,params):
         '''
         Produces a prediction of cost from the neural net at params.
@@ -257,7 +294,10 @@ class SingleNeuralNet():
         Returns:
             float : Predicted cost at parameters
         '''
-        return self.tf_session.run(self.output_var, feed_dict={self.input_placeholder: [params]})[0][0]
+        d = {self.input_placeholder: [params]}
+        if not self.cur_eps is None:
+            d.update(self.cur_eps)
+        return self.tf_session.run(self.output_var, feed_dict=d)[0][0]
         #runs = 100
         ## Do some runs with dropout, and return the smallest. This is kind of LCB.
         #results = [y[0] for y in self.tf_session.run(self.output_var, feed_dict={
@@ -273,7 +313,10 @@ class SingleNeuralNet():
         Returns:
             float : Predicted gradient at parameters
         '''
-        return self.tf_session.run(self.output_var_gradient, feed_dict={self.input_placeholder: [params]})[0][0]
+        d = {self.input_placeholder: [params]}
+        if not self.cur_eps is None:
+            d.update(self.cur_eps)
+        return self.tf_session.run(self.output_var_gradient, feed_dict=d)[0][0]
 
 
 class SampledNeuralNet():
@@ -355,9 +398,13 @@ class SampledNeuralNet():
 
     def start_opt(self):
         self.opt_net = self._random_net()
+        for n in self.nets:
+            n.start_opt()
 
     def stop_opt(self):
         self.opt_net = None
+        for n in self.nets:
+            n.stop_opt()
 
 class NeuralNet():
     '''
@@ -391,8 +438,8 @@ class NeuralNet():
         self.num_params = num_params
         self.fit_hyperparameters = fit_hyperparameters
 
-        self.initial_epochs = 100
-        self.subsequent_epochs = 20
+        self.initial_epochs = 1000
+        self.subsequent_epochs = 1000
 
         # Variables for tracking the current state of hyperparameter fitting.
         self.last_hyperfit = 0
