@@ -45,7 +45,7 @@ bs = []
 prev_layer_dim = INPUT_DIM
 for dim, dep in zip(HIDDEN_LAYER_DIMS, HIDDEN_LAYER_DEPTHS):
   Ws.append(tf.Variable(tf.random_normal([prev_layer_dim, dim, dep], stddev=1.4/np.sqrt(prev_layer_dim))))
-  bs.append(tf.Variable(tf.random_normal([dep, dim], stddev=INITIAL_STD)))
+  bs.append(tf.Variable(tf.random_normal([dim, dep], stddev=INITIAL_STD)))
   prev_layer_dim = dim
 
 Wout = tf.Variable(tf.random_normal([prev_layer_dim, OUTPUT_DIM], stddev=1.4/np.sqrt(prev_layer_dim)))
@@ -59,11 +59,11 @@ def get_y(x_var):
   prev_h = x_var
   for (W, b, act) in zip(Ws, bs, ACTS):
     # prev_h is [?,pdim], W is [pdim, dim, dep]. We need to multiply these to get [?, dim, dep]
-    inputs = tf.tensordot(prev_h, W, axes=[[1],[0]])
+    inputs = tf.tensordot(prev_h, W, axes=[[1],[0]]) + b
     # inputs is [?, dim, dep]
     maxed = tf.reduce_max(inputs, axis=2)
     # maxed is [?, dim]
-    prev_h = maxed
+    prev_h = tf.nn.dropout(maxed, keep_prob=keep_prob)
     #prev_h = tf.nn.dropout(act(tf.matmul(prev_h, W) + b), keep_prob=keep_prob)
   return tf.matmul(prev_h, Wout) + bout
 
@@ -175,45 +175,14 @@ def _get_ys_lcb(xs):
 
 def plot():
     predicted_x = _get_xrange()
-    #ydist = _get_ys_dist(predicted_x)
     ylcb = _get_ys_lcb(predicted_x)
     predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
     plt.clf()
-    #for (i,ys) in enumerate(ydist):
-    #    plt.scatter(predicted_x, ys, c=[i]*len(ys), vmin=0, vmax=len(ydist), cmap=plt.get_cmap("viridis"))
     plt.plot(predicted_x, predicted_y, color='r')
     plt.plot(predicted_x, ylcb[1], color='b')
     plt.plot(predicted_x, ylcb[0], color='g')
-    plt.scatter(train_x, train_y)
-    #plt.scatter(best_x, eval_y(best_x), color='r', marker='x')
+    plt.scatter(train_x, train_y, zorder=100)
     plt.draw()
-    #if OUTPUT_DIM > 1:
-    #    print("Can't plot with output dim > 1")
-    #    return
-    #if INPUT_DIM > 2:
-    #    print("Can't plot with input dim > 2")
-    #    return
-    #if INPUT_DIM == 1:
-    #    predicted_x = _get_xrange()
-    #    predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
-    #    plt.clf()
-    #    plt.scatter(train_x, train_y)
-    #    plt.plot(predicted_x, predicted_y, color='r')
-    #    plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r', marker='x')
-    #    plt.draw()
-    #elif INPUT_DIM == 2:
-    #    ext = 2
-    #    predicted_x = [(x0,x1) for x0 in np.linspace(-ext,ext,50) for x1 in np.linspace(-ext,ext,50)]
-    #    predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
-    #    miny = min(predicted_y)
-    #    maxy = max(predicted_y)
-    #    plt.clf()
-    #    plt.imshow((np.array(predicted_y).reshape(50,50) - miny) / (maxy - miny), extent=(-ext,ext,-ext,ext), cmap='jet')
-    #    plt.scatter([x for (x,_) in train_x], [y for (_,y) in train_x])
-    #    #plt.scatter(train_x, train_y)
-    #    #plt.plot(predicted_x, predicted_y, color='r')
-    #    #plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r', marker='x')
-    #    plt.draw()
 
 def plotgrad():
     predicted_x = _get_xrange()
