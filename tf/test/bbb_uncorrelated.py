@@ -17,13 +17,13 @@ def eval_y(x):
 # Network architecture
 INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [32] * 4
-ACTS = [tf.nn.relu] * 4
+ACTS = [gelu_fast] * 4
 OUTPUT_DIM = 1
 
 # Training
 BATCH_SIZE = 3
-TRAIN_REG_CO = 0#.001
-TRAIN_SAMPLING_CO = 0.0001
+TRAIN_REG_CO = .001
+TRAIN_SAMPLING_CO = 0.001
 TRAINER = tf.train.AdamOptimizer()
 INITIAL_STD = 1
 
