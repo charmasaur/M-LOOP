@@ -10,12 +10,12 @@ def gelu_fast(_x):
     return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
 
 def eval_y(x):
-    return (x-0.1)**2 - 0.5
+    return np.sin(2.*np.pi*x)
 
 # Network architecture
 INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [32] * 5
-ACTS = [gelu_fast] * 5
+ACTS = [tf.nn.relu] * 5
 OUTPUT_DIM = 1
 
 # Training
@@ -58,6 +58,13 @@ def get_y(x_var):
   prev_h = x_var
   for (W, b, act) in zip(Ws, bs, ACTS):
     prev_h = tf.nn.dropout(act(tf.matmul(prev_h, W) + b), keep_prob=keep_prob)
+  return tf.matmul(prev_h, Wout) + bout
+
+# Returns a y variable that will drop out consistently per call.
+def get_y_consistent(x_var):
+  prev_h = x_var
+  for (W, b, act, d) in zip(Ws, bs, ACTS, HIDDEN_LAYER_DIMS):
+    prev_h = tf.nn.dropout(act(tf.matmul(prev_h, W) + b), keep_prob=keep_prob, noise_shape=[1,d])
   return tf.matmul(prev_h, Wout) + bout
 
 y = get_y(x)
@@ -177,7 +184,7 @@ def plot():
     plt.plot(predicted_x, predicted_y, color='r')
     plt.plot(predicted_x, ylcb[1], color='b')
     plt.plot(predicted_x, ylcb[0], color='g')
-    plt.scatter(train_x, train_y)
+    plt.scatter(train_x, train_y, zorder=100)
     #plt.scatter(best_x, eval_y(best_x), color='r', marker='x')
     plt.draw()
     #if OUTPUT_DIM > 1:
@@ -226,8 +233,8 @@ def add_x(x):
 
 # Get the next data point and add it to the training set.
 def explore_random():
-    x = np.random.uniform(-0.5,0.5)
-    add_x(x + 0.5 if x>=0 else x - 0.5)
+    x = np.random.uniform(-2,2)
+    add_x(x)
 
 def explore_min():
     add_x(best_x[0])
