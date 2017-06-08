@@ -74,7 +74,7 @@ class Net():
             # Optimising.
             self.best_x = None
 
-            self.init = tf.initialize_all_variables()
+            self.init = tf.global_variables_initializer()
         self.reset()
 
     def destroy(self):
