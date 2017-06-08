@@ -177,9 +177,9 @@ def plot(nets):
     plt.clf()
     for n in nets:
         predicted_y = [r[0] for r in n.eval(predicted_x)]
-        plt.plot(predicted_x, predicted_y, color='b')
-    plt.scatter(train_x, train_y)
-    plt.scatter([best_x], [eval_y(best_x)], marker='x', color='r')
+        plt.plot(predicted_x, predicted_y)
+    plt.scatter(train_x, train_y, zorder=100)
+    #plt.scatter([best_x], [eval_y(best_x)], marker='x', color='r')
     plt.show()
 
 # Convenience functions
