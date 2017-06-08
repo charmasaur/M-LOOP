@@ -68,6 +68,7 @@ def get_y_consistent(x_var):
   return tf.matmul(prev_h, Wout) + bout
 
 y = get_y(x)
+y_sample = get_y_consistent(x)
 
 # Training.
 loss_func = (
@@ -179,51 +180,23 @@ def plot():
     ylcb = _get_ys_lcb(predicted_x)
     predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
     plt.clf()
-    #for (i,ys) in enumerate(ydist):
-    #    plt.scatter(predicted_x, ys, c=[i]*len(ys), vmin=0, vmax=len(ydist), cmap=plt.get_cmap("viridis"))
     plt.plot(predicted_x, predicted_y, color='r')
     plt.plot(predicted_x, ylcb[1], color='b')
     plt.plot(predicted_x, ylcb[0], color='g')
     plt.scatter(train_x, train_y, zorder=100)
     #plt.scatter(best_x, eval_y(best_x), color='r', marker='x')
     plt.draw()
-    #if OUTPUT_DIM > 1:
-    #    print("Can't plot with output dim > 1")
-    #    return
-    #if INPUT_DIM > 2:
-    #    print("Can't plot with input dim > 2")
-    #    return
-    #if INPUT_DIM == 1:
-    #    predicted_x = _get_xrange()
-    #    predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
-    #    plt.clf()
-    #    plt.scatter(train_x, train_y)
-    #    plt.plot(predicted_x, predicted_y, color='r')
-    #    plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r', marker='x')
-    #    plt.draw()
-    #elif INPUT_DIM == 2:
-    #    ext = 2
-    #    predicted_x = [(x0,x1) for x0 in np.linspace(-ext,ext,50) for x1 in np.linspace(-ext,ext,50)]
-    #    predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
-    #    miny = min(predicted_y)
-    #    maxy = max(predicted_y)
-    #    plt.clf()
-    #    plt.imshow((np.array(predicted_y).reshape(50,50) - miny) / (maxy - miny), extent=(-ext,ext,-ext,ext), cmap='jet')
-    #    plt.scatter([x for (x,_) in train_x], [y for (_,y) in train_x])
-    #    #plt.scatter(train_x, train_y)
-    #    #plt.plot(predicted_x, predicted_y, color='r')
-    #    #plt.scatter(session.run(x_opt)[0], session.run(y_opt)[0], color='r', marker='x')
-    #    plt.draw()
 
-def plotgrad():
+def plot_sample(n=1):
     predicted_x = _get_xrange()
-    predicted_y = [r[0] for r in session.run(y, feed_dict={x: predicted_x})]
-    predicted_grad = [r[0] for r in session.run(dydx, feed_dict={x: predicted_x})]
-    plt.plot(predicted_x, predicted_y, color='r')
-    plt.plot(predicted_x, predicted_grad, color='b')
-    plt.show()
+    #ydist = _get_ys_dist(predicted_x)
+    plt.clf()
+    for _ in range(n):
+        predicted_y = session.run(y_sample, feed_dict={x: predicted_x, keep_prob: TRAIN_KEEP_PROB})[:,0]
+        plt.plot(predicted_x, predicted_y)
+    plt.scatter(train_x, train_y, zorder=100)
+    plt.draw()
 
-# Add a point to the training set.
 def _add_train(nx, ny):
     train_x.append(nx)
     train_y.append(ny)
