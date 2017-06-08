@@ -17,7 +17,7 @@ def eval_y(x):
 # Network architecture
 INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [32] * 4
-ACTS = [gelu_fast] * 4
+ACTS = [tf.nn.relu] * 4
 OUTPUT_DIM = 1
 
 # Training
@@ -256,9 +256,8 @@ def add_x(x):
 
 # Get the next data point and add it to the training set.
 def explore_random():
-    #x = np.random.uniform(-1,1)
-    #add_x(x + 0.5 if x>=0 else x - 0.5)
-    add_x(np.random.uniform(-1,1))
+    x = np.random.uniform(0, 1)
+    add_x(x * 2 if x >= 0.5 else -(1-x)*2)
 
 def explore_min():
     add_x(best_x[0])

@@ -10,17 +10,18 @@ def gelu_fast(_x):
     return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
 
 def eval_y(x):
-    return (x-0.1)**2 - 0.5
+    return np.sin(2.*np.pi*x)
+    #return (x)**2 - 0.5
 
 # Network architecture
 INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [32] * 5
-ACTS = [gelu_fast] * 5
+ACTS = [tf.nn.relu] * 5
 OUTPUT_DIM = 1
 
 # Training
 BATCH_SIZE = 100
-TRAIN_REG_CO = 0#.001
+TRAIN_REG_CO = .01
 TRAINER = tf.train.AdamOptimizer()
 INITIAL_STD = 0.5
 
@@ -118,6 +119,7 @@ class Net():
                 this_loss = self.train_once()
                 losses.append(math.log(1+this_loss))
                 counter += 1
+                print("Loss: " + str(math.log(1+this_loss)))
         except KeyboardInterrupt:
             pass
 
@@ -163,8 +165,9 @@ def add_x(x):
 
 # Get the next data point and add it to the training set.
 def explore_random():
-    x = np.random.uniform(-0.5,0.5)
-    add_x(x + 0.5 if x>=0 else x - 0.5)
+    add_x(np.random.uniform(-2,2))
+    #x = np.random.uniform(0, 1)
+    #add_x(x * 2 if x >= 0.5 else -(1-x)*2)
 
 def explore_min():
     add_x(best_x[0])
