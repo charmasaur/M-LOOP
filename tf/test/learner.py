@@ -10,18 +10,19 @@ def gelu_fast(_x):
     return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
 
 def eval_y(x):
-    return np.sin(2.*np.pi*x)
+    return np.sin(np.pi*x)
 
 # Network architecture
 INPUT_DIM = 1
-HIDDEN_LAYER_DIMS = [64] * 3
-ACTS = [gelu_fast] * 3
+HIDDEN_LAYER_DIMS = [32] * 5
+ACTS = [tf.nn.relu] * 5
+DROP = [True] * 2
 OUTPUT_DIM = 1
 
 # Training
 BATCH_SIZE = 16
-TRAIN_KEEP_PROB = 0.8
-TRAIN_REG_CO = .001
+TRAIN_KEEP_PROB = 0.5
+TRAIN_REG_CO = .0001
 TRAINER = tf.train.AdamOptimizer()
 INITIAL_STD = 1.
 
@@ -56,15 +57,19 @@ bout = tf.Variable(tf.random_normal([OUTPUT_DIM], stddev=INITIAL_STD))
 # multiple variable pairs (one for training, one for optimising, etc...).
 def get_y(x_var):
   prev_h = x_var
-  for (W, b, act) in zip(Ws, bs, ACTS):
-    prev_h = tf.nn.dropout(act(tf.matmul(prev_h, W) + b), keep_prob=keep_prob)
+  for (W, b, act, d) in zip(Ws, bs, ACTS, DROP):
+    prev_h = act(tf.matmul(prev_h, W) + b)
+    if d:
+        prev_h = tf.nn.dropout(prev_h, keep_prob=keep_prob)
   return tf.matmul(prev_h, Wout) + bout
 
 # Returns a y variable that will drop out consistently per call.
 def get_y_consistent(x_var):
   prev_h = x_var
-  for (W, b, act, d) in zip(Ws, bs, ACTS, HIDDEN_LAYER_DIMS):
-    prev_h = tf.nn.dropout(act(tf.matmul(prev_h, W) + b), keep_prob=keep_prob, noise_shape=[1,d])
+  for (W, b, act, d, drop) in zip(Ws, bs, ACTS, HIDDEN_LAYER_DIMS, DROP):
+    prev_h = act(tf.matmul(prev_h, W) + b)
+    if drop:
+        prev_h = tf.nn.dropout(prev_h, keep_prob=keep_prob, noise_shape=[1,d])
   return tf.matmul(prev_h, Wout) + bout
 
 y = get_y(x)
@@ -206,7 +211,10 @@ def add_x(x):
 
 # Get the next data point and add it to the training set.
 def explore_random():
-    add_x(np.random.uniform(-2,2))
+    add_x(np.random.uniform(0,0.5) + np.random.choice([-1.25,-0.25,0.75]))
+    #x = np.random.uniform(-1.5,1.5)
+    #add_x(x + 0.5 if x > 0 else x - 0.5)
+    #add_x(np.random.uniform(-2,2))
     #x = np.random.uniform(0, 1)
     #add_x(x * 2 if x >= 0.5 else -(1-x)*2)
 
@@ -216,6 +224,10 @@ def explore_min():
 # Convenience functions
 def p():
     plot()
+    plt.show(block=False)
+
+def ps(n=10):
+    plot_sample(n)
     plt.show(block=False)
 
 def a():
@@ -232,3 +244,9 @@ optimise()
 #p()
 #train(100)
 #p()
+
+actis=[x];outs=[x];douts=[x];
+for (W,b,act,dim,drop) in zip(Ws,bs,ACTS,HIDDEN_LAYER_DIMS,DROP):
+    actis.append(tf.matmul(douts[-1],W)+b)
+    outs.append(act(actis[-1]))
+    douts.append(tf.nn.dropout(outs[-1],keep_prob=keep_prob) if drop else outs[-1])
