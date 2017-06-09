@@ -1514,7 +1514,12 @@ class NeuralNetLearner(Learner, mp.Process):
                  minimum_uncertainty = 1e-8,
                  predict_global_minima_at_end = True,
                  predict_local_minima_at_end = False,
+                 net_breadth = None,
+                 net_depth = None,
                  **kwargs):
+
+        self.breadth = net_breadth
+        self.depth = net_depth
         
         if nn_training_filename is not None:
             
@@ -1677,7 +1682,7 @@ class NeuralNetLearner(Learner, mp.Process):
         self.log = None
 
     def _construct_net(self):
-        self.neural_net = [mlnn.NeuralNet(self.num_params) for _ in range(self.num_nets)]
+        self.neural_net = [mlnn.NeuralNet(self.num_params, self.breadth, self.depth) for _ in range(self.num_nets)]
 
     def _init_cost_scaler(self):
         '''

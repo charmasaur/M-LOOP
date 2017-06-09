@@ -6,6 +6,8 @@ Created on 15Jun.,2016
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
+import argparse
+
 import mloop.controllers as mlc
 import mloop.interfaces as mli
 import mloop.testing as mlt
@@ -14,6 +16,11 @@ import mloop.utilities as mlu
 import numpy as np
 import logging
 import matplotlib.pyplot as plt
+
+parser = argparse.ArgumentParser(description='Run a test')
+parser.add_argument("breadth", type=int)
+parser.add_argument("depth", type=int)
+args = parser.parse_args()
 
 def main():
     
@@ -104,7 +111,9 @@ def main():
                                               target_cost = tcost,
                                               num_params=tnum_params, 
                                               min_boundary=tmin_boundary, 
-                                              max_boundary=tmax_boundary)            
+                                              max_boundary=tmax_boundary,
+                                              net_breadth = args.breadth,
+                                              net_depth = args.depth)
         nn_controller.optimize()
         #mlv.show_all_default_visualizations(nn_controller, show_plots=False)
         log.info("Neural net process controller ended")

@@ -378,17 +378,18 @@ class NeuralNet():
     '''
 
     def __init__(self,
-                 num_params = None,
+                 num_params,
+                 breadth,
+                 depth,
                  fit_hyperparameters = False):
 
         self.log = logging.getLogger(__name__)
         self.log.info('Initialising neural network impl')
-        if num_params is None:
-            self.log.error("num_params must be provided")
-            raise ValueError
 
         # Constants.
         self.num_params = num_params
+        self.breadth = breadth
+        self.depth = depth
         self.fit_hyperparameters = fit_hyperparameters
 
         self.initial_epochs = 100
@@ -422,7 +423,7 @@ class NeuralNet():
             return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
         creator = lambda: SingleNeuralNet(
                     self.num_params,
-                    [64]*5, [gelu_fast]*5,
+                    [self.breadth]*self.depth, [gelu_fast]*self.depth,
                     0.2, # train_threshold_ratio
                     16, # batch_size
                     1., # keep_prob
