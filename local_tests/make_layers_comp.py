@@ -11,15 +11,13 @@ for fn in fns:
         dems.append([float(l.strip()) for l in f])
 
 nums = [int(n[4:].split("l")[0]) for n in names]
-dems = np.array(dems)
-nums = np.array(nums)
 
 for n,d,name in zip(nums, dems, names):
     plt.scatter([n]*len(d), d, label=name)
 plt.legend()
 
-plt.plot(nums,np.percentile(dems,50,axis=1))
-plt.plot(nums,np.percentile(dems,90,axis=1))
-plt.plot(nums,np.percentile(dems,10,axis=1))
+plt.plot(nums,[np.percentile(d,50) for d in dems])
+plt.plot(nums,[np.percentile(d,90) for d in dems])
+plt.plot(nums,[np.percentile(d,10) for d in dems])
 
 plt.show()
