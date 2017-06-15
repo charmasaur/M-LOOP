@@ -1918,17 +1918,14 @@ class NeuralNetLearner(Learner, mp.Process):
         self.update_search_params()
         next_params = None
         next_cost = float('inf')
-        self.neural_net[net_index].start_opt()
         for start_params in self.search_params:
-            result = so.minimize(fun = lambda x: self.predict_cost(x, net_index),
-                                 x0 = start_params,
-                                 jac = lambda x: self.predict_cost_gradient(x, net_index),
-                                 bounds = self.search_region,
-                                 tol = self.search_precision)
+            result = self.neural_net[net_index].minimise(
+                    start_params,
+                    self.search_region,
+                    self.search_precision)
             if result.fun < next_cost:
                 next_params = result.x
                 next_cost = result.fun
-        self.neural_net[net_index].stop_opt()
         self.log.debug("Suggesting params " + str(next_params) + " with predicted cost: "
                 + str(next_cost))
         return next_params
