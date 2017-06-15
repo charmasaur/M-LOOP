@@ -7,6 +7,7 @@ import base64
 import mloop.utilities as mlu
 import numpy as np
 import numpy.random as nr
+import scipy.optimize as so
 import sklearn.preprocessing as skp
 import tensorflow as tf
 
@@ -645,6 +646,27 @@ class NeuralNet():
         Stops an optimisation run.
         '''
         self.net.stop_opt()
+
+    def minimise(self, start_params, bounds, tolerance):
+        '''
+        Runs scipy.optimize.minimize() on the network.
+        '''
+        start_params_scaled = self._scale_params(start_params)
+
+        minp = self._scale_params(np.array([m for m,_ in bounds]))
+        maxp = self._scale_params(np.array([M for m,M in bounds]))
+        bounds_scaled = list(zip(minp,maxp))
+
+        res = so.minimize(fun = self.net.predict_cost,
+                x0 = start_params_scaled,
+                jac = self.net.predict_cost_gradient,
+                bounds = bounds_scaled,
+                tol = tolerance)
+
+        res.x = self._unscale_params(res.x)
+        res.fun = self._unscale_cost(res.fun)
+
+        return res
 
     # Public mmethods to be used only for debugging/analysis.
 
