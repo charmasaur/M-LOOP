@@ -75,6 +75,7 @@ class SingleNeuralNet():
         with self.graph.as_default():
             ## Inputs
             self.input_placeholder = tf.placeholder(tf.float32, shape=[None, self.num_params])
+            self.input_placeholder_single = tf.placeholder(tf.float32, shape=[self.num_params])
             self.output_placeholder = tf.placeholder(tf.float32, shape=[None, 1])
             self.keep_prob_placeholder = tf.placeholder_with_default(1., shape=[])
             self.regularisation_coefficient_placeholder = tf.placeholder_with_default(0., shape=[])
@@ -104,18 +105,20 @@ class SingleNeuralNet():
                 tf.random_normal([1], stddev=bias_stddev),
                 name="bias_out"))
 
-            # Get the output var given an input var
-            def get_output_var(input_var):
-                prev_h = input_var
-                for w, b, act in zip(weights[:-1], biases[:-1], layer_activations):
-                    prev_h = act(tf.matmul(prev_h, w) + b)
-                    if self.keep_prob < 1.0:
-                        prev_h = tf.nn.dropout(prev_h, keep_prob=self.keep_prob_placeholder)
-                return tf.matmul(prev_h, weights[-1]) + biases[-1]
-
             ## Define tensors for evaluating the output var and gradient on the full input
-            self.output_var = get_output_var(self.input_placeholder)
+            prev_h = self.input_placeholder
+            prev_h_single = self.input_placeholder_single
+            for w, b, act in zip(weights[:-1], biases[:-1], layer_activations):
+                prev_h = act(tf.matmul(prev_h, w) + b)
+                prev_h_single = act(tf.tensordot(prev_h_single, w, axes=[[0],[0]]) + b)
+                if self.keep_prob < 1.0:
+                    prev_h = tf.nn.dropout(prev_h, keep_prob=self.keep_prob_placeholder)
+                    prev_h_single = tf.nn.dropout(prev_h_single, keep_prob=self.keep_prob_placeholder)
+            self.output_var = tf.matmul(prev_h, weights[-1]) + biases[-1]
+            self.output_var_single = (tf.tensordot(prev_h_single, weights[-1], axes=[[0],[0]]) + biases[-1])[0]
+
             self.output_var_gradient = tf.gradients(self.output_var, self.input_placeholder)
+            self.output_var_single_gradient = tf.gradients(self.output_var_single, self.input_placeholder_single)[0]
 
             ## Declare common loss functions
 
@@ -257,7 +260,7 @@ class SingleNeuralNet():
         Returns:
             float : Predicted cost at parameters
         '''
-        return self.tf_session.run(self.output_var, feed_dict={self.input_placeholder: [params]})[0][0]
+        return self.tf_session.run(self.output_var_single, feed_dict={self.input_placeholder_single: params})
         #runs = 100
         ## Do some runs with dropout, and return the smallest. This is kind of LCB.
         #results = [y[0] for y in self.tf_session.run(self.output_var, feed_dict={
@@ -273,7 +276,7 @@ class SingleNeuralNet():
         Returns:
             float : Predicted gradient at parameters
         '''
-        return self.tf_session.run(self.output_var_gradient, feed_dict={self.input_placeholder: [params]})[0][0]
+        return self.tf_session.run(self.output_var_single_gradient, feed_dict={self.input_placeholder_single: params}).astype(np.float64)
 
 
 class SampledNeuralNet():
