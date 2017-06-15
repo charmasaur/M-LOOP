@@ -278,6 +278,12 @@ class SingleNeuralNet():
         '''
         return self.tf_session.run(self.output_var_single_gradient, feed_dict={self.input_placeholder_single: params}).astype(np.float64)
 
+    def start_opt(self):
+        pass
+
+    def stop_opt(self):
+        pass
+
 
 class SampledNeuralNet():
     '''
@@ -358,8 +364,10 @@ class SampledNeuralNet():
 
     def start_opt(self):
         self.opt_net = self._random_net()
+        self.opt_net.start_opt()
 
     def stop_opt(self):
+        self.opt_net.stop_opt()
         self.opt_net = None
 
 class NeuralNet():
@@ -431,7 +439,7 @@ class NeuralNet():
                     1., # keep_prob
                     reg,
                     self.losses_list)
-        return SampledNeuralNet(creator, 1)
+        return creator()
 
     def _fit_scaler(self):
         '''
