@@ -108,9 +108,9 @@ class SingleNeuralNet():
             def get_output_var(input_var):
                 prev_h = input_var
                 for w, b, act in zip(weights[:-1], biases[:-1], layer_activations):
-                    prev_h = tf.nn.dropout(
-                          act(tf.matmul(prev_h, w) + b),
-                          keep_prob=self.keep_prob_placeholder)
+                    prev_h = act(tf.matmul(prev_h, w) + b)
+                    if self.keep_prob < 1.0:
+                        prev_h = tf.nn.dropout(prev_h, keep_prob=self.keep_prob_placeholder)
                 return tf.matmul(prev_h, weights[-1]) + biases[-1]
 
             ## Define tensors for evaluating the output var and gradient on the full input
