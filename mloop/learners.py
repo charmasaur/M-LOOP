@@ -1918,6 +1918,7 @@ class NeuralNetLearner(Learner, mp.Process):
         self.update_search_params()
         next_params = None
         next_cost = float('inf')
+        all_costs = set()
         for start_params in self.search_params:
             result = self.neural_net[net_index].minimise(
                     start_params,
@@ -1926,8 +1927,10 @@ class NeuralNetLearner(Learner, mp.Process):
             if result.fun < next_cost:
                 next_params = result.x
                 next_cost = result.fun
+                all_costs.add(next_cost)
         self.log.debug("Suggesting params " + str(next_params) + " with predicted cost: "
                 + str(next_cost))
+        self.log.debug("Found different costs: " + str(all_costs))
         return next_params
 
     def run(self):
