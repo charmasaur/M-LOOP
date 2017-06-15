@@ -9,24 +9,28 @@ import scipy.optimize as opt
 def gelu_fast(_x):
     return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
 
+def hat(x):
+    return 1 if x > 0 and x < 1 else 0
+
 def eval_y(x):
-    return np.sin(2.*np.pi*x)
+    return hat(x+4) - hat(x+2) + hat(x) - hat(x-2) + hat(x-4)
+    #return np.sin(2.*np.pi*x)
     #return (x)**2 - 0.5
 
 # Network architecture
 INPUT_DIM = 1
 HIDDEN_LAYER_DIMS = [32] * 5
-ACTS = [tf.nn.relu] * 5
+ACT = tf.nn.relu
 OUTPUT_DIM = 1
 
 # Training
-BATCH_SIZE = 100
-TRAIN_REG_CO = .01
+BATCH_SIZE = 16
+TRAIN_REG_CO = 0.#.0001
 TRAINER = tf.train.AdamOptimizer()
 INITIAL_STD = 0.5
 
 class Net():
-    def __init__(self):
+    def __init__(self, hidden_layer_dims):
         self.graph = tf.Graph()
         self.session = tf.Session(graph=self.graph)
 
@@ -40,7 +44,7 @@ class Net():
             bs = []
 
             prev_layer_dim = INPUT_DIM
-            for dim in HIDDEN_LAYER_DIMS:
+            for dim in hidden_layer_dims:
               Ws.append(tf.Variable(tf.random_normal(
                   [prev_layer_dim, dim], stddev=1.4/np.sqrt(prev_layer_dim))))
               bs.append(tf.Variable(tf.random_normal([dim], stddev=INITIAL_STD)))
@@ -56,8 +60,8 @@ class Net():
             # multiple variable pairs (one for training, one for optimising, etc...).
             def get_y(x_var):
                 prev_h = x_var
-                for (W, b, act) in zip(Ws, bs, ACTS):
-                  prev_h = act(tf.matmul(prev_h, W) + b)
+                for (W, b) in zip(Ws, bs):
+                  prev_h = ACT(tf.matmul(prev_h, W) + b)
                 return tf.matmul(prev_h, Wout) + bout
 
             self.y = get_y(self.x)
@@ -102,7 +106,7 @@ class Net():
                 self.reg_co: TRAIN_REG_CO,
                 })
         this_loss = self.loss(train_x, train_y)
-        #print("Log loss %f (unreg %f)" % (math.log(1+this_loss), math.log(1+self.loss(train_x, train_y, reg=False))))
+        print("Log loss %f (unreg %f)" % (math.log(1+this_loss), math.log(1+self.loss(train_x, train_y, reg=False))))
         return this_loss
 
     def eval(self, xs):
@@ -119,7 +123,7 @@ class Net():
                 this_loss = self.train_once()
                 losses.append(math.log(1+this_loss))
                 counter += 1
-                print("Loss: " + str(math.log(1+this_loss)))
+                #print("Loss: " + str(math.log(1+this_loss)))
         except KeyboardInterrupt:
             pass
 
@@ -165,9 +169,12 @@ def add_x(x):
 
 # Get the next data point and add it to the training set.
 def explore_random():
-    add_x(np.random.uniform(-2,2))
+    add_x(np.random.uniform(-5,7))
     #x = np.random.uniform(0, 1)
     #add_x(x * 2 if x >= 0.5 else -(1-x)*2)
+
+def p(ns=[]):
+    plot(ns)
 
 def explore_min():
     add_x(best_x[0])
@@ -190,22 +197,6 @@ def diff(net):
     print("Pred: " + str(p) + ", act: " + str(a) + ", rat: " + str(r))
     return r
 
-def doit(p=True):
-    net = Net()
-    net.optimise()
-    if plot:
-        plot([net])
-    while True:
-        net.train(200)
-        net.optimise()
-        explore_min()
-        if p:
-            plot([net])
-        if diff(net) < 0.0001:
-            break
-    net.destroy()
-    print("Best: " + str(best_x) + ", fun: " + str(eval_y(best_x)))
-
 reset()
-for _ in range(20):
+for _ in range(80):
     explore_random()
