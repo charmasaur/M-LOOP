@@ -21,7 +21,7 @@ ACTS = [tf.nn.relu] * 4
 OUTPUT_DIM = 1
 
 # Training
-BATCH_SIZE = 3
+BATCH_SIZE = 16
 TRAIN_REG_CO = .001
 TRAIN_SAMPLING_CO = 0.001
 TRAINER = tf.train.AdamOptimizer()
@@ -41,7 +41,7 @@ class DistVar():
 
         std = 1.4/tf.sqrt(tf.to_float(shape[0]))
         self.mu = tf.Variable(tf.random_normal(shape, stddev=std))
-        self.rho = tf.Variable(tf.ones(shape) * DistVar._rho_from_sigma(std))
+        self.rho = tf.Variable(tf.ones(shape) * DistVar._rho_from_sigma(std/5))
         self.eps = tf.placeholder_with_default(tf.zeros(shape=shape), shape=shape)
 
     def _rho_from_sigma(sigma):
