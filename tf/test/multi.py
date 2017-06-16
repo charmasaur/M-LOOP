@@ -19,7 +19,6 @@ def eval_y(x):
 
 # Network architecture
 INPUT_DIM = 1
-HIDDEN_LAYER_DIMS = [32] * 5
 ACT = tf.nn.relu
 OUTPUT_DIM = 1
 
