@@ -2087,3 +2087,9 @@ class NeuralNetLearner(Learner, mp.Process):
         for n in self.neural_net:
             all_losses += n.get_losses()
         return all_losses
+
+    def get_curvature(self, params):
+        results = []
+        for n in self.neural_net:
+            results.append(n.get_curvature(params))
+        return results
