@@ -477,6 +477,8 @@ class NeuralNet():
             - self._unscale_params([np.float64(0)]*self.num_params))
         self._gradient_unscale = rise_unscaled / run_unscaled
 
+        self._curvature_unscale = rise_unscaled / run_unscaled**2
+
     def _scale_params_and_cost_list(self, params_list_unscaled, cost_list_unscaled):
         params_list_scaled = self._param_scaler.transform(params_list_unscaled)
         # As above, numpy doesn't like scalars, so we need to do some reshaping.
@@ -497,6 +499,9 @@ class NeuralNet():
 
     def _unscale_gradient(self, gradient_scaled):
         return np.multiply(gradient_scaled, self._gradient_unscale)
+
+    def _unscale_curvature(self, curvature_scaled):
+        return np.multiply(curvature_scaled, self._curvature_unscale)
 
     # Public methods.
 
@@ -685,6 +690,6 @@ class NeuralNet():
 
     def get_curvature(self, params):
         '''
-        Returns the second derivatives at the specified params. These are normalised.
+        Returns the second derivatives at the specified params.
         '''
-        return self.net.predict_cost_curvature(self._scale_params(params))
+        return self._unscale_curvature(self.net.predict_cost_curvature(self._scale_params(params)))

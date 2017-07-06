@@ -1904,6 +1904,19 @@ class NeuralNetLearner(Learner, mp.Process):
             for i,n in enumerate(self.neural_net):
                 self.archive_dict.update({'net_'+str(i):n.save()})
 
+    def find_nearest_minimum(self, params, net_index=None):
+        '''
+        Finds the minimum nearest the given parameters.
+        Returns (params, predicted cost) for that minimum.
+        '''
+        if net_index is None:
+            net_index = nr.randint(self.num_nets)
+        result = self.neural_net[net_index].minimise(
+                params,
+                self.search_region,
+                self.search_precision)
+        return (result.x, result.fun)
+
     def find_next_parameters(self, net_index=None):
         '''
         Returns next parameters to find. Increments counters appropriately.
@@ -2088,8 +2101,7 @@ class NeuralNetLearner(Learner, mp.Process):
             all_losses += n.get_losses()
         return all_losses
 
-    def get_curvature(self, params):
-        results = []
-        for n in self.neural_net:
-            results.append(n.get_curvature(params))
-        return results
+    def get_curvature(self, params, net_index=None):
+        if net_index is None:
+            net_index = nr.randint(self.num_nets)
+        return self.neural_net[net_index].get_curvature(params)
