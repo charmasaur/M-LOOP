@@ -1683,7 +1683,7 @@ class NeuralNetLearner(Learner, mp.Process):
         '''
         Initialises the cost scaler. cost_scaler_init_index must be set.
         '''
-        self.cost_scaler = skp.StandardScaler(with_mean=False, with_std=False)
+        self.cost_scaler = skp.StandardScaler(with_mean=True, with_std=True)
         self.cost_scaler.fit(self.all_costs[:self.cost_scaler_init_index,np.newaxis])
 
     def create_neural_net(self):
