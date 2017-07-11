@@ -1904,19 +1904,6 @@ class NeuralNetLearner(Learner, mp.Process):
             for i,n in enumerate(self.neural_net):
                 self.archive_dict.update({'net_'+str(i):n.save()})
 
-    def find_nearest_minimum(self, params, net_index=None):
-        '''
-        Finds the minimum nearest the given parameters.
-        Returns (params, predicted cost) for that minimum.
-        '''
-        if net_index is None:
-            net_index = nr.randint(self.num_nets)
-        result = self.neural_net[net_index].minimise(
-                params,
-                self.search_region,
-                self.search_precision)
-        return (result.x, result.fun)
-
     def find_next_parameters(self, net_index=None):
         '''
         Returns next parameters to find. Increments counters appropriately.
@@ -2101,7 +2088,44 @@ class NeuralNetLearner(Learner, mp.Process):
             all_losses += n.get_losses()
         return all_losses
 
-    def get_curvature(self, params, net_index=None):
-        if net_index is None:
-            net_index = nr.randint(self.num_nets)
-        return self.neural_net[net_index].get_curvature(params)
+    def get_cost(self,params,net_index):
+        '''
+        Produces a prediction of cost from the neural net at params.
+
+        This differs from predict_cost in that the cost returned from this method is guaranteed
+        not to have any scaling applied.
+
+        Returns:
+            float : Predicted cost at paramters
+        '''
+        return self.cost_scaler.inverse_transform([self.predict_cost(params,net_index)])[0]
+
+    def _get_cost_scale_factor(self):
+        return (self.cost_scaler.inverse_transform([[1.]])[0][0]
+                -self.cost_scaler.inverse_transform([[0.]])[0][0])
+
+    def get_cost_gradient(self,params,net_index):
+        '''
+        Produces a prediction of the gradient of the cost function at params.
+
+        This differs from predict_cost_gradient in that the gradient returned from this method is
+        guaranteed not to have any scaling applied.
+
+        Returns:
+            float : Predicted gradient at paramters
+        '''
+        return self._get_cost_scale_factor()*self.predict_cost_gradient(params,net_index)
+
+    def get_curvature(self, params, net_index):
+        return self._get_cost_scale_factor()*self.neural_net[net_index].get_curvature(params)
+
+    def find_nearest_minimum(self, params, net_index):
+        '''
+        Finds the minimum nearest the given parameters.
+        Returns (params, predicted cost) for that minimum.
+        '''
+        result = self.neural_net[net_index].minimise(
+                params,
+                self.search_region,
+                self.search_precision)
+        return (result.x, self.cost_scaler.inverse_transform([result.fun])[0])

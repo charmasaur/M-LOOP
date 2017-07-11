@@ -19,14 +19,14 @@ def get_cost(learner, params):
     _check_params(learner, params)
     results = []
     for i in range(learner.num_nets):
-        results.append(learner.predict_cost(params, i))
+        results.append(learner.get_cost(params, i))
     return np.array(results)
 
 def get_gradient(learner, params):
     _check_params(learner, params)
     results = []
     for i in range(learner.num_nets):
-        results.append(learner.predict_cost_gradient(params, i))
+        results.append(learner.get_cost_gradient(params, i))
     return np.array(results)
 
 def get_curvature(learner, params):
@@ -40,7 +40,7 @@ def get_nearest(learner, params):
     _check_params(learner, params)
     results = []
     for i in range(learner.num_nets):
-        results.append(learner.find_nearest_minimum(params))
+        results.append(learner.find_nearest_minimum(params, i))
     return np.array(results)
 
 if __name__ == "__main__":
