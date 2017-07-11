@@ -36,6 +36,7 @@ def get_curvature(learner, params):
         results.append(learner.get_curvature(params, i))
     return np.array(results)
 
+# This will be slow the first time you call it, and after that should be quick.
 def get_nearest(learner, params):
     _check_params(learner, params)
     results = []
@@ -49,7 +50,7 @@ if __name__ == "__main__":
     parser.add_argument("learner_filename")
     parser.add_argument("-c","--cost",action="store_true",help="get the cost")
     parser.add_argument("-g","--gradient",action="store_true",help="get the gradient")
-    parser.add_argument("-u","--curvature",action="store_true",help="get the curvature (second derivatives)")
+    parser.add_argument("-u","--curvature",action="store_true",help="get the curvature (second derivatives). This will be slow.")
     parser.add_argument("-n","--nearest",action="store_true",help="get the nearest (predicted) minimum")
     #parser.add_argument("-c","--curvature",nargs='?',help="get the curvature (second derivatives) for a particular param set")
     parser.add_argument("-f","--file",type=argparse.FileType('r'),default=sys.stdin,help="File from which to take params (default stdin, type your params then Ctrl+D/EOF)")

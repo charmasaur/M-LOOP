@@ -120,7 +120,7 @@ class SingleNeuralNet():
 
             self.output_var_gradient = tf.gradients(self.output_var, self.input_placeholder)
             self.output_var_single_gradient = tf.gradients(self.output_var_single, self.input_placeholder_single)[0]
-            self.output_var_single_curvature = tf.gradients(self.output_var_single_gradient, self.input_placeholder_single)[0]
+            self.output_var_single_curvature = None
 
             ## Declare common loss functions
 
@@ -290,7 +290,11 @@ class SingleNeuralNet():
         '''
         Predicts the curvature (second derivative) of the cost function at params.
         '''
-        return self.tf_session.run(self.output_var_single_curvature, feed_dict={self.input_placeholder_single: params}).astype(np.float64)
+        if self.output_var_single_curvature is None:
+            print("Building curvatures... this could take a while")
+            with self.graph.as_default():
+                self.output_var_single_curvature = [tf.gradients(self.output_var_single_gradient[i],self.input_placeholder_single)[0][i] for i in range(self.num_params)]
+        return self.tf_session.run(self.output_var_single_curvature, feed_dict={self.input_placeholder_single: params})
 
 
 class SampledNeuralNet():
