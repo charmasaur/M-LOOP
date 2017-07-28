@@ -4,16 +4,18 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.optimize as opt
+import scipy.signal as ss
 
 # Approximation of GELU.
 def gelu_fast(_x):
     return 0.5 * _x * (1 + tf.tanh(tf.sqrt(2 / np.pi) * (_x + 0.044715 * tf.pow(_x, 3))))
 
 def hat(x):
-    return 1 if x > 0 and x < 1 else 0
+    return 0.5 * (np.arctan(15*x) - np.arctan(15*(x-1)))
 
 def eval_y(x):
-    return hat(x+4) - hat(x+2) + hat(x) - hat(x-2) + hat(x-4)
+    return max(-0.5,ss.sawtooth(2*x,width=0.5))
+    #return hat(x+4) - hat(x+2) + hat(x) - hat(x-2) + hat(x-4)
     #return np.sin(2.*np.pi*x)
     #return (x)**2 - 0.5
 
@@ -23,7 +25,7 @@ ACT = tf.nn.relu
 OUTPUT_DIM = 1
 
 # Training
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 TRAIN_REG_CO = 0.#.0001
 TRAINER = tf.train.AdamOptimizer()
 INITIAL_STD = 0.5
@@ -39,36 +41,39 @@ class Net():
             self.reg_co = tf.placeholder_with_default(0., shape=[])
 
             # Variables.
-            Ws = []
-            bs = []
+            self.Ws = []
+            self.bs = []
 
             prev_layer_dim = INPUT_DIM
             for dim in hidden_layer_dims:
-              Ws.append(tf.Variable(tf.random_normal(
+              self.Ws.append(tf.Variable(tf.random_normal(
                   [prev_layer_dim, dim], stddev=1.4/np.sqrt(prev_layer_dim))))
-              bs.append(tf.Variable(tf.random_normal([dim], stddev=INITIAL_STD)))
+              self.bs.append(tf.Variable(tf.random_normal([dim], stddev=INITIAL_STD)))
               prev_layer_dim = dim
 
-            Wout = tf.Variable(tf.random_normal(
-                [prev_layer_dim, OUTPUT_DIM], stddev=1.4/np.sqrt(prev_layer_dim)))
-            bout = tf.Variable(tf.random_normal([OUTPUT_DIM], stddev=INITIAL_STD))
+            self.Ws.append(tf.Variable(tf.random_normal(
+                [prev_layer_dim, OUTPUT_DIM], stddev=1.4/np.sqrt(prev_layer_dim))))
+            self.bs.append(tf.Variable(tf.random_normal([OUTPUT_DIM], stddev=INITIAL_STD)))
 
             # Computations.
 
             # Use a function to generate a y variable as a function of an x variable so that we can generate
             # multiple variable pairs (one for training, one for optimising, etc...).
-            def get_y(x_var):
-                prev_h = x_var
-                for (W, b) in zip(Ws, bs):
-                  prev_h = ACT(tf.matmul(prev_h, W) + b)
-                return tf.matmul(prev_h, Wout) + bout
-
-            self.y = get_y(self.x)
+            self.actis=[self.x]
+            self.outs=[self.x]
+            for (W,b) in zip(self.Ws,self.bs):
+                self.actis.append(tf.matmul(self.outs[-1],W)+b)
+                self.outs.append(ACT(self.actis[-1]))
+            self.y = self.actis[-1]
+            #prev_h = self.x
+            #for (W, b) in zip(self.Ws[:-1], self.bs[:-1]):
+            #    prev_h = ACT(tf.matmul(prev_h, W) + b)
+            #self.y = tf.matmul(prev_h, self.Ws[-1]) + self.bs[-1]
 
             # Training.
             self.loss_func = (
                     tf.reduce_mean(tf.reduce_sum(tf.square(self.y - self.y_), reduction_indices=[1]))
-                    + self.reg_co * tf.reduce_mean([tf.nn.l2_loss(W) for W in Ws + [Wout]]))
+                    + self.reg_co * tf.reduce_mean([tf.nn.l2_loss(W) for W in self.Ws]))
             self.train_step = TRAINER.minimize(self.loss_func)
 
             # Gradient with respect to x.
@@ -168,11 +173,16 @@ def add_x(x):
 
 # Get the next data point and add it to the training set.
 def explore_random():
-    add_x(np.random.uniform(-5,7))
+    while True:
+        x = np.random.uniform(-7,7)
+        if x > 1 and x < 2:
+            continue
+        add_x(x)
+        break
     #x = np.random.uniform(0, 1)
     #add_x(x * 2 if x >= 0.5 else -(1-x)*2)
 
-def p(ns=[]):
+def p(*ns):
     plot(ns)
 
 def explore_min():
@@ -184,7 +194,7 @@ def plot(nets):
     for n in nets:
         predicted_y = [r[0] for r in n.eval(predicted_x)]
         plt.plot(predicted_x, predicted_y)
-    plt.scatter(train_x, train_y, zorder=100)
+    plt.scatter(train_x, train_y, color='r')
     #plt.scatter([best_x], [eval_y(best_x)], marker='x', color='r')
     plt.show()
 
@@ -197,5 +207,5 @@ def diff(net):
     return r
 
 reset()
-for _ in range(80):
+for _ in range(200):
     explore_random()
