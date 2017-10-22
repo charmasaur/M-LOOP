@@ -293,7 +293,7 @@ class SingleNeuralNet():
         if self.output_var_single_curvature is None:
             print("Building curvatures... this could take a while")
             with self.graph.as_default():
-                self.output_var_single_curvature = [tf.gradients(self.output_var_single_gradient[i],self.input_placeholder_single)[0][i] for i in range(self.num_params)]
+                self.output_var_single_curvature = [tf.gradients(self.output_var_single_gradient[i],self.input_placeholder_single)[0] for i in range(self.num_params)]
         return self.tf_session.run(self.output_var_single_curvature, feed_dict={self.input_placeholder_single: params})
 
 
@@ -481,7 +481,7 @@ class NeuralNet():
             - self._unscale_params([np.float64(0)]*self.num_params))
         self._gradient_unscale = rise_unscaled / run_unscaled
 
-        self._curvature_unscale = rise_unscaled / run_unscaled**2
+        self._curvature_unscale = rise_unscaled / np.outer(run_unscaled, run_unscaled)
 
     def _scale_params_and_cost_list(self, params_list_unscaled, cost_list_unscaled):
         params_list_scaled = self._param_scaler.transform(params_list_unscaled)
